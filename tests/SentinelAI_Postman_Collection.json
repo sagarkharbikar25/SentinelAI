@@ -1,0 +1,152 @@
+{
+  "info": {
+    "name": "SentinelAI Semester 5 API Collection",
+    "description": "Complete Postman collection for SentinelAI Backend API (NestJS Port 3001) - Auth, Users, Agents, Tools, and Policies.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "1. Admin Login (Get Bearer Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@sentinelai.io\",\n  \"password\": \"AdminPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "2. Register New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"analyst@sentinelai.io\",\n  \"name\": \"Security Analyst\",\n  \"password\": \"AnalystPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Profile (/auth/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agents Management",
+      "item": [
+        {
+          "name": "List Agents",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents"]
+            }
+          }
+        },
+        {
+          "name": "Create AI Agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Coding Security Assistant\",\n  \"description\": \"Scans source code for vulnerabilities\",\n  \"type\": \"CODING\",\n  \"riskLevel\": \"HIGH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tools Registry",
+      "item": [
+        {
+          "name": "List Registered Tools",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tools",
+              "host": ["{{baseUrl}}"],
+              "path": ["tools"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policies Governance",
+      "item": [
+        {
+          "name": "List Governance Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/policies",
+              "host": ["{{baseUrl}}"],
+              "path": ["policies"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

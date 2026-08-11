@@ -1,0 +1,19 @@
+# Compiled output
+/dist
+/node_modules
+
+# Environment & local config
+.env
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Unit test coverage
+/coverage
+
+# IDE
+.idea
+.vscode
+*.suo
