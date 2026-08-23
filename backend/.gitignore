@@ -5,6 +5,9 @@
 # Environment & local config
 .env
 !.env.example
+*.env
+!.env.example
+database/.env
 
 # Logs
 *.log
