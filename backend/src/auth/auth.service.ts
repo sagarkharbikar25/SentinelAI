@@ -62,7 +62,7 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const emailKey = registerDto.email.toLowerCase();
 
-    if (this.supabaseService) {
+    if (this.supabaseService?.client) {
       const { data: existingUser, error: lookupError } = await this.supabaseService.client
         .from('users')
         .select('id')
@@ -114,7 +114,7 @@ export class AuthService {
     const emailKey = loginDto.email.toLowerCase();
     let user = this.users.get(emailKey);
 
-    if (this.supabaseService) {
+    if (this.supabaseService?.client) {
       const { data, error } = await this.supabaseService.client
         .from('users')
         .select('id,email,name,password_hash,role,is_active,created_at')
@@ -164,7 +164,7 @@ export class AuthService {
   }
 
   async getUserById(userId: string) {
-    if (this.supabaseService) {
+    if (this.supabaseService?.client) {
       const { data, error } = await this.supabaseService.client
         .from('users')
         .select('id,email,name,role,is_active,created_at')
@@ -190,7 +190,7 @@ export class AuthService {
   }
 
   async getAllUsers() {
-    if (this.supabaseService) {
+    if (this.supabaseService?.client) {
       const { data, error } = await this.supabaseService.client
         .from('users')
         .select('id,email,name,role,is_active,created_at');
