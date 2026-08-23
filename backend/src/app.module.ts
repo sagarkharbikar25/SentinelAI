@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { ToolsModule } from './tools/tools.module';
 import { AgentsModule } from './agents/agents.module';
 import { PoliciesModule } from './policies/policies.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PoliciesModule } from './policies/policies.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    SupabaseModule,
     AuthModule,
     UsersModule,
     ToolsModule,

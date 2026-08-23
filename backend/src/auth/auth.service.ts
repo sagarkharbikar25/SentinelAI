@@ -1,9 +1,10 @@
-import { Injectable, ConflictException, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, Logger, Optional } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserRole } from '../common/decorators/roles.decorator';
+import { SupabaseService } from '../supabase/supabase.service';
 
 export interface UserEntity {
   id: string;
@@ -22,13 +23,16 @@ export class AuthService {
   // Seeded mock user repository for immediate testing prior to DB connection
   private users: Map<string, UserEntity> = new Map();
 
-  constructor(private readonly jwtService: JwtService) {
+  constructor(
+    private readonly jwtService: JwtService,
+    @Optional() private readonly supabaseService?: SupabaseService,
+  ) {
     this.seedDefaultUsers();
   }
 
-  private async seedDefaultUsers() {
-    const adminHash = await bcrypt.hash('AdminPass123!', 12);
-    const devHash = await bcrypt.hash('DevPass123!', 12);
+  private seedDefaultUsers() {
+    const adminHash = '$2b$12$BJiV6oETQQ4vUjr5DppE4./zE41E0kW5x4.e5OSPlxJYQtanQFLLO';
+    const devHash = '$2b$12$tswxm6I1IuoIhdemSaAZJuDfExmpfq.d0OasGhkPCbHfr9KjMaKxu';
 
     const superAdmin: UserEntity = {
       id: 'usr-superadmin-001',
@@ -57,6 +61,25 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     const emailKey = registerDto.email.toLowerCase();
+
+    if (this.supabaseService) {
+      const { data: existingUser, error: lookupError } = await this.supabaseService.client
+        .from('users')
+        .select('id')
+        .eq('email', emailKey)
+        .maybeSingle();
+      if (lookupError) throw new Error(`Supabase user lookup failed: ${lookupError.message}`);
+      if (existingUser) throw new ConflictException(`User with email '${registerDto.email}' already exists.`);
+
+      const passwordHash = await bcrypt.hash(registerDto.password, 12);
+      const { data: newUser, error } = await this.supabaseService.client
+        .from('users')
+        .insert({ id: `usr-${Date.now()}`, email: emailKey, name: registerDto.name, password_hash: passwordHash })
+        .select('id,email,name,role,is_active,created_at')
+        .single();
+      if (error) throw new Error(`Supabase user registration failed: ${error.message}`);
+      return this.formatUser(newUser);
+    }
 
     if (this.users.has(emailKey)) {
       throw new ConflictException(`User with email '${registerDto.email}' already exists.`);
@@ -89,7 +112,20 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const emailKey = loginDto.email.toLowerCase();
-    const user = this.users.get(emailKey);
+    let user = this.users.get(emailKey);
+
+    if (this.supabaseService) {
+      const { data, error } = await this.supabaseService.client
+        .from('users')
+        .select('id,email,name,password_hash,role,is_active,created_at')
+        .eq('email', emailKey)
+        .maybeSingle();
+      if (error) throw new Error(`Supabase login lookup failed: ${error.message}`);
+      user = data ? {
+        id: data.id, email: data.email, name: data.name, passwordHash: data.password_hash,
+        role: data.role, isActive: data.is_active, createdAt: data.created_at,
+      } : undefined;
+    }
 
     if (!user) {
       throw new UnauthorizedException('Invalid email or password.');
@@ -128,6 +164,16 @@ export class AuthService {
   }
 
   async getUserById(userId: string) {
+    if (this.supabaseService) {
+      const { data, error } = await this.supabaseService.client
+        .from('users')
+        .select('id,email,name,role,is_active,created_at')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw new Error(`Supabase user lookup failed: ${error.message}`);
+      if (!data) throw new UnauthorizedException('User not found.');
+      return this.formatUser(data);
+    }
     for (const user of this.users.values()) {
       if (user.id === userId) {
         return {
@@ -144,6 +190,13 @@ export class AuthService {
   }
 
   async getAllUsers() {
+    if (this.supabaseService) {
+      const { data, error } = await this.supabaseService.client
+        .from('users')
+        .select('id,email,name,role,is_active,created_at');
+      if (error) throw new Error(`Supabase users lookup failed: ${error.message}`);
+      return (data || []).map((user) => this.formatUser(user));
+    }
     return Array.from(this.users.values()).map(u => ({
       id: u.id,
       email: u.email,
@@ -152,5 +205,16 @@ export class AuthService {
       isActive: u.isActive,
       createdAt: u.createdAt,
     }));
+  }
+
+  private formatUser(user: any) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.is_active ?? user.isActive,
+      createdAt: user.created_at ?? user.createdAt,
+    };
   }
 }
