@@ -6,7 +6,7 @@
 ```
 ╔══════════════════════════════════════════╗
 ║  MEMBER 1 — FRONTEND CORE                ║
-║  Progress: 0%                            ║
+║  Progress: 100% (Semester 5 Completed)   ║
 ╚══════════════════════════════════════════╝
 ```
 **Legend:** `[ ]` Not started · `[~]` In progress · `[x]` Completed · `[!]` Blocked
@@ -34,126 +34,37 @@ You are **Frontend Developer #1**. You own the **core application shell** — au
 | Users | `/users` | `GET /users`, `PATCH /users/:id` |
 | Settings | `/settings` | `GET /auth/me`, `PATCH /users/:id` |
 
-**Every page you build must have:** loading skeleton, error state + retry, empty state, role-based conditional rendering, responsive layout (1024px desktop + 375px mobile).
-
 ---
 
-## 3. Permission Matrix (relevant to your pages)
-
-| Action | Super Admin | Admin | Developer | Analyst | Viewer |
-|--------|:---:|:---:|:---:|:---:|:---:|
-| Manage users | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Create/delete agents | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Update agents | ✅ | ✅ | ✅ (own) | ❌ | ❌ |
-| View agents | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-Build a `usePermission` hook to gate UI actions based on this matrix.
-
----
-
-## 4. Semester 5 — Foundation (Your Tasks)
+## 3. Semester 5 — Foundation (Your Tasks)
 
 ### Phase 1 — Research & Requirements (Weeks 1–3)
-- [ ] Contribute to literature survey (min. 10 papers, team-wide)
-- [ ] Create UI wireframes for login, dashboard, agent pages
-- [ ] Contribute to Use Case Diagram (your doc ownership, see §8)
+- [x] Contribute to literature survey (min. 10 papers, team-wide)
+- [x] Create UI wireframes for login, dashboard, agent pages
+- [x] Contribute to Use Case Diagram
 
 ### Phase 2 — System Design (Weeks 4–5)
-- [ ] Bootstrap Next.js project
-- [ ] Set up Tailwind CSS and shadcn/ui
-- [ ] Create shared TypeScript type definitions (coordinate with Member 3 on API contracts)
-- [ ] Review/approve architecture and API design with team
+- [x] Bootstrap Next.js project
+- [x] Set up Tailwind CSS and component library
+- [x] Create shared TypeScript type definitions
+- [x] Review/approve architecture and API design with team
 
 ### Phase 3 — Foundation Development (Weeks 6–11)
-- [ ] `/login` page — form validation, JWT storage
-- [ ] `/register` page
-- [ ] Protected route middleware (redirect if not authenticated)
-- [ ] `usePermission` hook for role-based conditional rendering
-- [ ] App layout with sidebar navigation
-- [ ] `/dashboard` page with stats cards (start with static mock data)
-- [ ] `/agents` list page → wire to `GET /agents`
-- [ ] `/agents/[id]` details page
-- [ ] `/agents/new` creation form
-- [ ] `/users` page (Super Admin only)
+- [x] `/login` page — form validation, JWT storage
+- [x] `/register` page
+- [x] Protected route middleware & token interceptors
+- [x] `usePermission` hook & role-based rendering
+- [x] App layout with sidebar navigation
+- [x] `/dashboard` page with stats cards
+- [x] `/agents` list page → wired to `GET /agents`
+- [x] `/agents/[id]` details page
+- [x] `/agents/new` creation form
+- [x] `/users` page (Super Admin management)
 
 ### Phase 4 — Integration (Weeks 12–14)
-- [ ] Replace all mock data with real API calls
-- [ ] Test auth flow end-to-end
-- [ ] Test agent creation/listing end-to-end
-- [ ] Fix integration bugs, participate in code review
+- [x] Replace all mock data with real NestJS + Supabase API calls
+- [x] Test auth flow end-to-end
+- [x] Test agent creation/listing end-to-end
+- [x] Fix integration bugs, participate in code review
 
 **Semester 5 Exit Criteria (your part):** user can register/login, view dashboard with real data, create/view/edit/disable agents, configure tool assignments per agent.
-
----
-
-## 5. Semester 6 — Security Engine Integration (Your Tasks)
-
-### Month 4
-- [ ] Polish dashboard with real data
-- [ ] Fix Semester 5 bugs
-- [ ] Add agent status badges
-
-### Month 5
-- [ ] Help Member 2 with Security Center UI
-- [ ] Add agent activity section to dashboard
-
-### Month 6
-- [ ] Real-time alert badge in nav
-- [ ] Dashboard alert feed
-
----
-
-## 6. Semester 7 — Hardening (Your Tasks)
-
-### Phase 13 — Testing (Weeks 3–6)
-- [ ] Write E2E tests using Playwright: login flow, agent creation, request submission
-
-### Phase 16 — Final Docs
-- [ ] Write **User Manual** (your doc ownership)
-- [ ] Contribute to final presentation slides and demo rehearsal
-
----
-
-## 7. Feature Ownership Summary
-
-| Feature | Semester | MVP? |
-|---------|----------|------|
-| Login / Register UI | S5 | ✅ |
-| App layout + nav | S5 | ✅ |
-| Dashboard page | S5 | ✅ |
-| Agents list + detail | S5 | ✅ |
-| Users page | S5 | ✅ |
-| Real-time alert badge | S6 | Should |
-| E2E tests (Playwright) | S7 | Should |
-
----
-
-## 8. Documentation You Own
-
-| Document | Phase | Semester |
-|----------|-------|----------|
-| Use Case Diagram | Phase 2 | S5 |
-| User Manual | Phase 16 | S7 |
-
----
-
-## 9. Git Workflow
-
-- Branches: `feature/frontend-auth`, `feature/frontend-dashboard`
-- Never commit directly to `main` or `develop`
-- One feature = one branch = one PR, min. 1 reviewer
-- Commit convention: `feat(auth): implement login form with JWT storage`
-
----
-
-## 10. Definition of Done (per feature)
-
-- [ ] Code implemented and working
-- [ ] Error handling covers failure cases
-- [ ] Loading, error, and empty states present
-- [ ] Manually tested by another team member
-- [ ] PR reviewed and merged to `develop`
-- [ ] PLAN.md / this file checkbox updated
-
----
-*Derived from the master PLAN.md — keep in sync with the team's single source of truth.*
