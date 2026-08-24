@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sentinel_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: sentinel_user
+      POSTGRES_PASSWORD: sentinel_pass
+      POSTGRES_DB: sentinel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/migrations/20260823000000_initial_schema.sql:/docker-entrypoint-initdb.d/01_initial_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel_user -d sentinel_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

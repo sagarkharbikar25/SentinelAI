@@ -76,27 +76,25 @@ CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 ## 3. Semester 5 — Foundation (Your Tasks)
 
 ### Phase 1 — Research & Requirements (Weeks 1–3)
-- [ ] Draft ER diagram
-- [ ] Define all database tables and relationships
-- [ ] Contribute to literature survey
+- [x] Draft ER diagram & data dictionary
+- [x] Define all database tables, columns, constraints, and relationships
+- [x] Contribute to literature survey
 
 ### Phase 2 — System Design (Weeks 4–5)
-- [ ] Set up GitHub repository and branch structure
-- [ ] Create `docker-compose.yml` with PostgreSQL
-- [ ] Initialize Prisma schema
-- [ ] Create first migration
-- [ ] Finalize database schema (you lead this review)
+- [x] Set up GitHub repository and branch structure
+- [x] Create `docker-compose.yml` with PostgreSQL 16
+- [x] Initialize schema migrations (`20260823000000_initial_schema.sql`)
+- [x] Finalize database schema
 
 ### Phase 3 — Foundation Development (Weeks 6–11)
-- [ ] Write all Prisma migrations (users, roles, permissions, agents, tools, policies, audit_logs)
-- [ ] Create seed data: 3 default roles, 10 permissions, 3 test users, 4 sample agents, 5 tools
-- [ ] Implement database backup strategy (`pg_dump` script)
-- [ ] Create performance indexes (see §2)
-- [ ] Set up Redis (optional, for session caching)
+- [x] Write SQL schema migrations (`users`, `roles`, `permissions`, `agents`, `tools`, `policies`, `requests`, `audit_logs`, `sessions`)
+- [x] Create seed data: 5 system roles (`SUPER_ADMIN`, `ADMIN`, `DEVELOPER`, `ANALYST`, `VIEWER`), 3 test users, 4 sample agents, 5 tools, default security policies & rules
+- [x] Implement database backup strategy (`database/backup/backup.sh`)
+- [x] Create SQL performance indexes (`idx_requests_agent_id`, `idx_audit_logs_user_id`, etc.)
 
 ### Phase 4 — Integration (Weeks 12–14)
-- [ ] Support integration debugging from the DB side
-- [ ] Update SRS/SDD with schema changes made during dev
+- [x] Support integration & Supabase/PostgreSQL live cloud deployment
+- [x] Align DB schema with Member 3 NestJS backend API
 
 **Semester 5 Exit Criteria (your part):** schema + migrations + seed data fully support register/login, agent CRUD, tool config, basic policies, audit events.
 
