@@ -28,8 +28,8 @@ export class CreatePolicyRuleDto {
   @IsNotEmpty()
   effect: PolicyEffect;
 
-  @ApiProperty({ example: 'Destructive database deletion is strictly prohibited by security policy.', description: 'Rule violation reason' })
+  @ApiProperty({ example: 'Destructive database deletion is strictly prohibited by security policy.', required: false, description: 'Rule violation reason' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  reason: string;
+  reason?: string;
 }

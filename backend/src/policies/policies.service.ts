@@ -79,7 +79,7 @@ export class PoliciesService {
       toolName: r.toolName,
       operation: r.operation,
       effect: r.effect,
-      reason: r.reason,
+      reason: r.reason || 'Enforced by security governance policy.',
     }));
 
     const newPolicy: PolicyEntity = {

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { SupabaseService } from '../../supabase/supabase.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -15,6 +16,12 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn().mockReturnValue('mock_jwt_token_xyz'),
+          },
+        },
+        {
+          provide: SupabaseService,
+          useValue: {
+            client: null,
           },
         },
       ],
