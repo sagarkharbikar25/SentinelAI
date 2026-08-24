@@ -10,9 +10,41 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config) => {
+let isAuthenticating = false;
+
+async function getDevToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  const existing = localStorage.getItem('sentinel_token');
+  if (existing) return existing;
+
+  if (isAuthenticating) return null;
+  isAuthenticating = true;
+
+  try {
+    const res = await axios.post(`${API_BASE_URL}/auth/login`, {
+      email: 'admin@sentinelai.io',
+      password: 'AdminPass123!',
+    });
+
+    if (res.data?.success && res.data?.data?.accessToken) {
+      const token = res.data.data.accessToken;
+      localStorage.setItem('sentinel_token', token);
+      return token;
+    }
+  } catch (err) {
+    console.warn('Dev auto-login failed:', err);
+  } finally {
+    isAuthenticating = false;
+  }
+  return null;
+}
+
+api.interceptors.request.use(async (config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('sentinel_token');
+    let token = localStorage.getItem('sentinel_token');
+    if (!token) {
+      token = await getDevToken();
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
