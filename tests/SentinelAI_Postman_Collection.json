@@ -4,6 +4,16 @@
     "description": "Complete Postman collection for SentinelAI Backend API (NestJS Port 3001) - Auth, Users, Agents, Tools, and Policies.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "variable": [
     {
       "key": "baseUrl",
@@ -22,6 +32,22 @@
       "item": [
         {
           "name": "1. Admin Login (Get Bearer Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.collectionVariables.set('authToken', jsonData.data.accessToken);",
+                  "    pm.environment.set('authToken', jsonData.data.accessToken);",
+                  "    console.log('authToken automatically saved to collection variables!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -60,9 +86,6 @@
           "name": "3. Get Profile (/auth/me)",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
               "host": ["{{baseUrl}}"],
@@ -79,9 +102,6 @@
           "name": "List Agents",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/agents",
               "host": ["{{baseUrl}}"],
@@ -94,8 +114,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
@@ -117,9 +136,6 @@
           "name": "List Registered Tools",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/tools",
               "host": ["{{baseUrl}}"],
@@ -136,9 +152,6 @@
           "name": "List Governance Policies",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/policies",
               "host": ["{{baseUrl}}"],

@@ -30,7 +30,7 @@ export class AuthService {
     this.seedDefaultUsers();
   }
 
-  private seedDefaultUsers() {
+  private async seedDefaultUsers() {
     const adminHash = '$2b$12$BJiV6oETQQ4vUjr5DppE4./zE41E0kW5x4.e5OSPlxJYQtanQFLLO';
     const devHash = '$2b$12$tswxm6I1IuoIhdemSaAZJuDfExmpfq.d0OasGhkPCbHfr9KjMaKxu';
 
@@ -63,29 +63,35 @@ export class AuthService {
     const emailKey = registerDto.email.toLowerCase();
 
     if (this.supabaseService?.client) {
-      const { data: existingUser, error: lookupError } = await this.supabaseService.client
-        .from('users')
-        .select('id')
-        .eq('email', emailKey)
-        .maybeSingle();
-      if (lookupError) throw new Error(`Supabase user lookup failed: ${lookupError.message}`);
-      if (existingUser) throw new ConflictException(`User with email '${registerDto.email}' already exists.`);
+      try {
+        const { data: existingUser } = await this.supabaseService.client
+          .from('users')
+          .select('id')
+          .eq('email', emailKey)
+          .maybeSingle();
 
-      const passwordHash = await bcrypt.hash(registerDto.password, 12);
-      const { data: newUser, error } = await this.supabaseService.client
-        .from('users')
-        .insert({ id: `usr-${Date.now()}`, email: emailKey, name: registerDto.name, password_hash: passwordHash })
-        .select('id,email,name,role,is_active,created_at')
-        .single();
-      if (error) throw new Error(`Supabase user registration failed: ${error.message}`);
-      return this.formatUser(newUser);
+        if (existingUser) throw new ConflictException(`User with email '${registerDto.email}' already exists.`);
+
+        const passwordHash = await bcrypt.hash(registerDto.password, 12);
+        const { data: newUser, error } = await this.supabaseService.client
+          .from('users')
+          .insert({ id: `usr-${Date.now()}`, email: emailKey, name: registerDto.name, password_hash: passwordHash })
+          .select('id,email,name,role,is_active,created_at')
+          .single();
+
+        if (!error && newUser) {
+          return this.formatUser(newUser);
+        }
+      } catch (err: any) {
+        if (err instanceof ConflictException) throw err;
+        this.logger.warn(`Supabase register failed: ${err.message}. Falling back to in-memory store.`);
+      }
     }
 
     if (this.users.has(emailKey)) {
       throw new ConflictException(`User with email '${registerDto.email}' already exists.`);
     }
 
-    // Hash password with 12 rounds of bcrypt
     const passwordHash = await bcrypt.hash(registerDto.password, 12);
 
     const newUser: UserEntity = {
@@ -93,7 +99,7 @@ export class AuthService {
       email: registerDto.email,
       name: registerDto.name,
       passwordHash,
-      role: UserRole.VIEWER, // Default role assigned upon self-registration
+      role: UserRole.VIEWER,
       isActive: true,
       createdAt: new Date().toISOString(),
     };
@@ -112,19 +118,35 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const emailKey = loginDto.email.toLowerCase();
-    let user = this.users.get(emailKey);
+    let user: UserEntity | undefined = undefined;
 
     if (this.supabaseService?.client) {
-      const { data, error } = await this.supabaseService.client
-        .from('users')
-        .select('id,email,name,password_hash,role,is_active,created_at')
-        .eq('email', emailKey)
-        .maybeSingle();
-      if (error) throw new Error(`Supabase login lookup failed: ${error.message}`);
-      user = data ? {
-        id: data.id, email: data.email, name: data.name, passwordHash: data.password_hash,
-        role: data.role, isActive: data.is_active, createdAt: data.created_at,
-      } : undefined;
+      try {
+        const { data } = await this.supabaseService.client
+          .from('users')
+          .select('id,email,name,password_hash,role,is_active,created_at')
+          .eq('email', emailKey)
+          .maybeSingle();
+
+        if (data) {
+          user = {
+            id: data.id,
+            email: data.email,
+            name: data.name,
+            passwordHash: data.password_hash,
+            role: data.role as UserRole,
+            isActive: data.is_active,
+            createdAt: data.created_at,
+          };
+        }
+      } catch (err: any) {
+        this.logger.warn(`Supabase login lookup failed: ${err.message}. Falling back to in-memory store.`);
+      }
+    }
+
+    // Fallback to local memory repository if not found in Supabase or Supabase is offline
+    if (!user) {
+      user = this.users.get(emailKey);
     }
 
     if (!user) {
@@ -165,15 +187,18 @@ export class AuthService {
 
   async getUserById(userId: string) {
     if (this.supabaseService?.client) {
-      const { data, error } = await this.supabaseService.client
-        .from('users')
-        .select('id,email,name,role,is_active,created_at')
-        .eq('id', userId)
-        .maybeSingle();
-      if (error) throw new Error(`Supabase user lookup failed: ${error.message}`);
-      if (!data) throw new UnauthorizedException('User not found.');
-      return this.formatUser(data);
+      try {
+        const { data } = await this.supabaseService.client
+          .from('users')
+          .select('id,email,name,role,is_active,created_at')
+          .eq('id', userId)
+          .maybeSingle();
+        if (data) return this.formatUser(data);
+      } catch (err: any) {
+        this.logger.warn(`Supabase user lookup failed: ${err.message}. Falling back to in-memory store.`);
+      }
     }
+
     for (const user of this.users.values()) {
       if (user.id === userId) {
         return {
@@ -191,12 +216,18 @@ export class AuthService {
 
   async getAllUsers() {
     if (this.supabaseService?.client) {
-      const { data, error } = await this.supabaseService.client
-        .from('users')
-        .select('id,email,name,role,is_active,created_at');
-      if (error) throw new Error(`Supabase users lookup failed: ${error.message}`);
-      return (data || []).map((user) => this.formatUser(user));
+      try {
+        const { data } = await this.supabaseService.client
+          .from('users')
+          .select('id,email,name,role,is_active,created_at');
+        if (data && data.length > 0) {
+          return data.map((user) => this.formatUser(user));
+        }
+      } catch (err: any) {
+        this.logger.warn(`Supabase users lookup failed: ${err.message}. Falling back to in-memory store.`);
+      }
     }
+
     return Array.from(this.users.values()).map(u => ({
       id: u.id,
       email: u.email,
