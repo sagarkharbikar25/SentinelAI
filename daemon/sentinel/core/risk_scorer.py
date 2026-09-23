@@ -108,7 +108,7 @@ class RiskScorer:
         # 5. Operation multiplier
         op_upper = operation.upper()
         if "DELETE" in op_upper or op_upper == "RM":
-            score = min(100, int(score * 1.5))
+            score = min(100, int((score + 15) * 1.5))
             reasons.append("Operation is destructive DELETE (highest severity)")
         elif "EXECUTE" in op_upper or "SHELL" in op_upper:
             score = min(100, score + 20)

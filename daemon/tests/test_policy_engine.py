@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from sentinel.core.policy_engine import PolicyEngine, PolicyRule, PolicyEffect
 
 

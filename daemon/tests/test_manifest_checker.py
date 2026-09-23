@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from sentinel.core.manifest_checker import ManifestChecker, ManifestCheckResult
 
 
