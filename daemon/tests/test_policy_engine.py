@@ -1,9 +1,7 @@
-import pytest
 from sentinel.core.policy_engine import PolicyEngine, PolicyRule, PolicyEffect
 
 
-@pytest.fixture
-def engine():
+def create_test_engine() -> PolicyEngine:
     eng = PolicyEngine()
     eng.add_rule(
         PolicyRule(
@@ -34,7 +32,8 @@ def engine():
     return eng
 
 
-def test_rule_matching_deny(engine):
+def test_rule_matching_deny():
+    engine = create_test_engine()
     decision = engine.evaluate(
         agent_type="MCP",
         action_type="FILE_DELETE",
@@ -45,7 +44,8 @@ def test_rule_matching_deny(engine):
     assert "SSH is protected" in decision.reason
 
 
-def test_rule_matching_require_confirmation(engine):
+def test_rule_matching_require_confirmation():
+    engine = create_test_engine()
     decision = engine.evaluate(
         agent_type="SHELL",
         action_type="SHELL_CMD",
@@ -55,7 +55,8 @@ def test_rule_matching_require_confirmation(engine):
     assert decision.effect == PolicyEffect.REQUIRE_CONFIRMATION
 
 
-def test_no_rule_match_allows(engine):
+def test_no_rule_match_allows():
+    engine = create_test_engine()
     decision = engine.evaluate(
         agent_type="MCP",
         action_type="FILE_READ",
