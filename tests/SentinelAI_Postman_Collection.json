@@ -1,148 +1,242 @@
 {
   "info": {
-    "name": "SentinelAI Semester 5 API Collection",
-    "description": "Complete Postman collection for SentinelAI Backend API (NestJS Port 3001) - Auth, Users, Agents, Tools, and Policies.",
+    "name": "SentinelAI Daemon API Collection (v2.0)",
+    "description": "Postman collection for SentinelAI Local Security Daemon (Port 8765) - Interception, Session Management, User Prompts, and Audit Logging.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3001",
+      "value": "http://127.0.0.1:8765",
       "type": "string"
     },
     {
-      "key": "authToken",
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "actionId",
       "value": "",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Authentication",
+      "name": "Daemon Health & Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/daemon/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["daemon", "status"]
+        },
+        "description": "Checks daemon health, circuit breaker state, and active session."
+      }
+    },
+    {
+      "name": "Session Management",
       "item": [
         {
-          "name": "1. Admin Login (Get Bearer Token)",
+          "name": "1. Start Agent Session",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@sentinelai.io\",\n  \"password\": \"AdminPass123!\"\n}"
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"task_description\": \"Fix backend database authentication bug\",\n  \"granted_paths\": [\n    \"d:/GitHub/SentinelAI\",\n    \"~/project\"\n  ]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
+              "raw": "{{baseUrl}}/daemon/session/start",
               "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "path": ["daemon", "session", "start"]
             }
           }
         },
         {
-          "name": "2. Register New User",
+          "name": "2. End Agent Session",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"analyst@sentinelai.io\",\n  \"name\": \"Security Analyst\",\n  \"password\": \"AnalystPass123!\"\n}"
+              "raw": "{\n  \"session_id\": \"{{sessionId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/register",
+              "raw": "{{baseUrl}}/daemon/session/end",
               "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
-            }
-          }
-        },
-        {
-          "name": "3. Get Profile (/auth/me)",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "me"]
+              "path": ["daemon", "session", "end"]
             }
           }
         }
       ]
     },
     {
-      "name": "Agents Management",
+      "name": "Action Interception (Shims & Proxy)",
       "item": [
         {
-          "name": "List Agents",
+          "name": "1. Intercept Safe Read (AUTO-ALLOW)",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_READ\",\n  \"operation\": \"READ\",\n  \"target_path\": \"d:/GitHub/SentinelAI/README.md\",\n  \"command\": \"cat README.md\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/agents",
+              "raw": "{{baseUrl}}/daemon/intercept",
               "host": ["{{baseUrl}}"],
-              "path": ["agents"]
+              "path": ["daemon", "intercept"]
             }
           }
         },
         {
-          "name": "Create AI Agent",
+          "name": "2. Intercept Policy Deny (.ssh delete -> HARD BLOCK)",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Coding Security Assistant\",\n  \"description\": \"Scans source code for vulnerabilities\",\n  \"type\": \"CODING\",\n  \"riskLevel\": \"HIGH\"\n}"
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_DELETE\",\n  \"operation\": \"DELETE\",\n  \"target_path\": \"~/.ssh/id_rsa\",\n  \"command\": \"rm ~/.ssh/id_rsa\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/agents",
+              "raw": "{{baseUrl}}/daemon/intercept",
               "host": ["{{baseUrl}}"],
-              "path": ["agents"]
+              "path": ["daemon", "intercept"]
+            }
+          }
+        },
+        {
+          "name": "3. Intercept Untracked File (Triggers PROMPT_USER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_DELETE\",\n  \"operation\": \"DELETE\",\n  \"target_path\": \"d:/GitHub/SentinelAI/test_scratch.txt\",\n  \"command\": \"rm test_scratch.txt\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/intercept",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "intercept"]
             }
           }
         }
       ]
     },
     {
-      "name": "Tools Registry",
+      "name": "User Prompts & Responses",
       "item": [
         {
-          "name": "List Registered Tools",
+          "name": "1. Submit User Approval (ALLOW)",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action_id\": \"{{actionId}}\",\n  \"user_choice\": \"ALLOW\",\n  \"remember_for_session\": false\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/tools",
+              "raw": "{{baseUrl}}/daemon/user-response",
               "host": ["{{baseUrl}}"],
-              "path": ["tools"]
+              "path": ["daemon", "user-response"]
+            }
+          }
+        },
+        {
+          "name": "2. Submit User Rejection (BLOCK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action_id\": \"{{actionId}}\",\n  \"user_choice\": \"BLOCK\",\n  \"remember_for_session\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/user-response",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "user-response"]
             }
           }
         }
       ]
     },
     {
-      "name": "Policies Governance",
+      "name": "Flight Recorder & Activity Feed",
       "item": [
         {
-          "name": "List Governance Policies",
+          "name": "1. Fetch Recent Actions",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{authToken}}" }
-            ],
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/policies",
+              "raw": "{{baseUrl}}/daemon/actions?limit=50&offset=0",
               "host": ["{{baseUrl}}"],
-              "path": ["policies"]
+              "path": ["daemon", "actions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Fetch Security Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/daemon/alerts?unread_only=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "alerts"],
+              "query": [
+                {
+                  "key": "unread_only",
+                  "value": "true"
+                }
+              ]
             }
           }
         }
