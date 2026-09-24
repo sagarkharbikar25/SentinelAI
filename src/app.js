@@ -13,6 +13,7 @@ import { createThreatIntelView } from './components/ThreatIntel/ThreatIntelView.
 import { createReportsView } from './components/Reports/ReportsView.js';
 import { createIncidentModal } from './components/Common/IncidentModal.js';
 import { createToastManager } from './components/Common/Toast.js';
+import { createSecurityCenterView, createPoliciesView, createToolsView, createAuditView } from './components/Security/SecurityViews.js';
 
 class SentinalApp {
   constructor() {
@@ -77,6 +78,10 @@ class SentinalApp {
       case 'threat-map': return 'GLOBAL THREAT INGRESS HUD';
       case 'threat-intel': return 'NATIONAL THREAT INTEL VAULT';
       case 'reports': return 'OFFICIAL INTELLIGENCE REPORTS';
+      case 'security-center': return 'SECURITY THREAT CENTER';
+      case 'policies': return 'SECURITY POLICIES';
+      case 'tools-registry': return 'TOOLS REGISTRY';
+      case 'audit-logs': return 'AUDIT LOGS';
       default: return 'SOC TELEMETRY';
     }
   }
@@ -206,6 +211,14 @@ class SentinalApp {
     } else if (this.currentRoute === 'reports') {
       const reportsView = createReportsView(this.toast);
       this.pageWrapper.appendChild(reportsView);
+    } else if (this.currentRoute === 'security-center') {
+      createSecurityCenterView(this.toast).then((view) => { this.pageWrapper.innerHTML = ''; this.pageWrapper.appendChild(view); });
+    } else if (this.currentRoute === 'policies') {
+      createPoliciesView(this.toast).then((view) => { this.pageWrapper.innerHTML = ''; this.pageWrapper.appendChild(view); });
+    } else if (this.currentRoute === 'tools-registry') {
+      createToolsView().then((view) => { this.pageWrapper.innerHTML = ''; this.pageWrapper.appendChild(view); });
+    } else if (this.currentRoute === 'audit-logs') {
+      createAuditView().then((view) => { this.pageWrapper.innerHTML = ''; this.pageWrapper.appendChild(view); });
     }
   }
 

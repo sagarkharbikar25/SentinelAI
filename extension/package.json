@@ -1,0 +1,6 @@
+{
+  "name": "sentinelai-browser-guard",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": { "test": "node --check background.js && node --check content.js" }
+}

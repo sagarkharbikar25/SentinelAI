@@ -1,0 +1,119 @@
+ <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Secure Authentication Portal</title>
+
+    <link rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="topbar">
+
+        <div class="brand">
+            <div class="logo">🛡</div>
+
+            <div>
+                <h2>Secure Authentication Portal</h2>
+                <p>Official User Authentication System</p>
+            </div>
+        </div>
+
+        <div class="security-text">
+            Secure &nbsp; | &nbsp; Reliable &nbsp; | &nbsp; Protected
+        </div>
+
+    </header>
+
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <div class="background-design"></div>
+
+        <div class="login-card">
+
+            <div class="lock-icon">🔒</div>
+
+            <h1>Welcome Back</h1>
+
+            <p class="subtitle">
+                Login to securely access your account
+            </p>
+
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for msg in messages %}
+                        <div class="msg">{{ msg }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+
+            <form method="POST">
+
+                <div class="input-group">
+                    <span class="input-icon">👤</span>
+
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Username"
+                        required
+                    >
+                </div>
+
+
+                <div class="input-group">
+                    <span class="input-icon">🔒</span>
+
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        required
+                    >
+                </div>
+
+
+                <button type="submit">
+                    Login Securely
+                </button>
+
+            </form>
+
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+
+            <p class="register-text">
+                New User?
+                <a href="/register">Create an Account</a>
+            </p>
+
+        </div>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer>
+
+        <p>🔒 Your information is protected with secure authentication.</p>
+
+        <p>© 2026 Secure Authentication Portal. All rights reserved.</p>
+
+    </footer>
+
+</body>
+
+</html>

@@ -1,156 +1,106 @@
-# SentinelAI — System Architecture, Module Maps & Sequence Diagrams
-## Member 3 Deliverable · Semester 5 Weeks 2 & 3
+# SentinelAI — System Architecture & Sequence Diagrams
+## Version 2.0 (Desktop Daemon & Interception Architecture)
 
 ---
 
-## 1. NestJS Module Dependency Architecture
+## 1. System Module Architecture
 
 ```mermaid
 graph TD
-    AppModule["AppModule (Root)"]
-    AuthModule["AuthModule"]
-    UsersModule["UsersModule"]
-    AgentsModule["AgentsModule"]
-    ToolsModule["ToolsModule"]
-    PoliciesModule["PoliciesModule"]
-    PrismaModule["PrismaModule (Shared DB Client)"]
+    Agent["AI Agent (Claude Code / Cursor / Script)"]
+    Shim["Shell Shims (rm, mv in PATH)"]
+    MCP["MCP Proxy (Port 9999)"]
+    Daemon["SentinelAI Daemon (Port 8765)"]
+    
+    Manifest["Manifest Checker (TOML)"]
+    Risk["File Risk Scorer (Deterministic 0-100)"]
+    Policy["Policy Engine (TOML Rules)"]
+    Breaker["Circuit Breaker (Burst Limiter)"]
+    DecisionEngine["Unified Decision Engine"]
+    
+    Tauri["Tauri Desktop UI (Member 1)"]
+    Prompt["Permission Prompt Dialog (30s)"]
+    DB[("SQLite Flight Recorder (sentinel.db)")]
 
-    AppModule --> AuthModule
-    AppModule --> UsersModule
-    AppModule --> AgentsModule
-    AppModule --> ToolsModule
-    AppModule --> PoliciesModule
+    Agent -->|CLI commands| Shim
+    Agent -->|Tool calls| MCP
+    Shim -->|POST /daemon/intercept| Daemon
+    MCP -->|POST /daemon/intercept| Daemon
 
-    AuthModule --> UsersModule
-    AuthModule --> PrismaModule
-    UsersModule --> PrismaModule
-    AgentsModule --> ToolsModule
-    AgentsModule --> PrismaModule
-    ToolsModule --> PrismaModule
-    PoliciesModule --> PrismaModule
+    Daemon --> DecisionEngine
+    DecisionEngine --> Manifest
+    DecisionEngine --> Risk
+    DecisionEngine --> Policy
+    DecisionEngine --> Breaker
+
+    DecisionEngine -->|If PROMPT_USER| Tauri
+    Tauri --> Prompt
+    Prompt -->|POST /daemon/user-response| Daemon
+
+    Daemon -->|Append Log| DB
+    Daemon -->|ALLOW or BLOCK| Shim
 ```
 
 ---
 
-## 2. API Endpoint RBAC Permission Map
+## 2. Sequence Diagrams
 
-| Module | Endpoint | Method | Allowed Roles | Description |
-|---|---|---|---|---|
-| **Auth** | `/auth/register` | `POST` | Public | Register new user account |
-| **Auth** | `/auth/login` | `POST` | Public | Authenticate user & issue JWT |
-| **Auth** | `/auth/logout` | `POST` | All Authenticated | Invalidate session / client token |
-| **Auth** | `/auth/me` | `GET` | All Authenticated | Fetch current user profile & role |
-| **Users** | `/users` | `GET` | `SUPER_ADMIN` | List all users |
-| **Users** | `/users/:id` | `GET` | `SUPER_ADMIN`, `ADMIN`, Self | Fetch user profile details |
-| **Users** | `/users/:id` | `PATCH` | `SUPER_ADMIN`, Self | Update user profile |
-| **Users** | `/users/:id/role` | `PATCH` | `SUPER_ADMIN` | Change user system role |
-| **Agents** | `/agents` | `POST` | `ADMIN`, `SUPER_ADMIN` | Register new AI agent |
-| **Agents** | `/agents` | `GET` | All Authenticated | List all registered agents |
-| **Agents** | `/agents/:id` | `GET` | All Authenticated | View agent details & capabilities |
-| **Agents** | `/agents/:id` | `PATCH` | `ADMIN`, `SUPER_ADMIN`, Owner | Update agent parameters |
-| **Agents** | `/agents/:id` | `DELETE` | `ADMIN`, `SUPER_ADMIN` | Delete/deactivate agent |
-| **Agents** | `/agents/:id/tools` | `POST` | `ADMIN`, `SUPER_ADMIN` | Assign allowed tools to agent |
-| **Tools** | `/tools` | `POST` | `SUPER_ADMIN` | Register new tool in system |
-| **Tools** | `/tools` | `GET` | All Authenticated | List all registered tools |
-| **Tools** | `/tools/:id` | `PATCH` | `SUPER_ADMIN` | Update tool risk level & permissions |
-| **Policies**| `/policies` | `POST` | `ADMIN`, `SUPER_ADMIN` | Create governance policy |
-| **Policies**| `/policies` | `GET` | All Authenticated | List governance policies |
-| **Policies**| `/policies/:id` | `GET` | All Authenticated | View specific policy details |
-| **Policies**| `/policies/:id` | `PATCH` | `ADMIN`, `SUPER_ADMIN` | Update policy rules |
-| **Policies**| `/policies/:id` | `DELETE` | `SUPER_ADMIN` | Delete governance policy |
-
----
-
-## 3. Sequence Diagrams
-
-### 3.1 Authentication Sequence Flow (Register $\rightarrow$ Login $\rightarrow$ JWT Issue)
+### 2.1 Shell Shim File Deletion Interception (ALLOW / BLOCK)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Client / User
-    participant Controller as AuthController
-    participant Service as AuthService
-    participant Bcrypt as Bcrypt Utility
-    participant JWT as JwtService
-    participant DB as Prisma (User DB)
+    actor Agent as AI Agent (Claude Code)
+    participant Shim as Shell Shim (rm.py)
+    participant Daemon as SentinelAI Daemon (:8765)
+    participant Engine as Decision Engine
+    participant OS as Host Operating System
+    participant DB as SQLite (audit_logs)
 
-    Note over User, DB: User Registration
-    User->>Controller: POST /auth/register {email, name, password}
-    Controller->>Service: register(dto)
-    Service->>Bcrypt: hash(password, 12 rounds)
-    Bcrypt-->>Service: hashedPassword
-    Service->>DB: user.create({email, name, hashedPassword, role: VIEWER})
-    DB-->>Service: createdUser
-    Service-->>Controller: UserProfilePayload
-    Controller-->>User: HTTP 201 { success: true, data: user }
-
-    Note over User, DB: User Login
-    User->>Controller: POST /auth/login {email, password}
-    Controller->>Service: login(dto)
-    Service->>DB: user.findUnique({email})
-    DB-->>Service: user
-    Service->>Bcrypt: compare(password, user.passwordHash)
-    Bcrypt-->>Service: isValid (true)
-    Service->>JWT: sign({sub: user.id, email: user.email, role: user.role})
-    JWT-->>Service: accessToken
-    Service-->>Controller: AuthTokenPayload
-    Controller-->>User: HTTP 200 { success: true, data: { accessToken, user } }
-```
-
----
-
-### 3.2 RBAC Security Guard Sequence Flow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as Authenticated Client
-    participant Guard1 as JwtAuthGuard
-    participant Guard2 as RolesGuard
-    participant Reflector as Reflector (Metadata)
-    participant Controller as Protected Controller
-
-    Client->>Guard1: HTTP Request with Bearer Token Header
-    alt Missing or Invalid Token
-        Guard1-->>Client: HTTP 401 Unauthorized { success: false, error: "AUTH_UNAUTHORIZED" }
-    else Valid JWT Token
-        Guard1->>Guard1: Attach decoded payload to req.user
-        Guard1->>Guard2: Pass execution context
-        Guard2->>Reflector: get(@Roles(), handler)
-        Reflector-->>Guard2: Required Roles [ADMIN, SUPER_ADMIN]
-        alt User Role does NOT match
-            Guard2-->>Client: HTTP 403 Forbidden { success: false, error: "INSUFFICIENT_PERMISSIONS" }
-        else User Role matches Required Roles
-            Guard2->>Controller: Execute Controller Handler Method
-            Controller-->>Client: HTTP 200/201 Success Response Payload
-        end
+    Agent->>Shim: rm ~/project/test.py
+    Shim->>Daemon: POST /daemon/intercept {path, op: "DELETE", agent: "claude"}
+    Daemon->>Engine: decide(manifest, policy, risk)
+    alt Action is Outside Scope or Denied by Policy
+        Engine-->>Daemon: Decision(outcome: BLOCK, reason: POLICY_DENY)
+        Daemon->>DB: Log Action & Decision (BLOCK)
+        Daemon-->>Shim: HTTP 200 {decision: "BLOCK", reason: "POLICY_DENY"}
+        Shim-->>Agent: Exit code 1 ("BLOCKED by SentinelAI")
+    else Action is In Scope & Low Risk
+        Engine-->>Daemon: Decision(outcome: ALLOW, reason: AUTO_ALLOW_SAFE)
+        Daemon->>DB: Log Action & Decision (ALLOW)
+        Daemon-->>Shim: HTTP 200 {decision: "ALLOW"}
+        Shim->>OS: Execute native deletion (/bin/rm)
+        OS-->>Shim: Success
+        Shim-->>Agent: Exit code 0
     end
 ```
 
 ---
 
-### 3.3 Agent & Tool Registration Workflow
+### 2.2 Interactive Permission Prompt Flow (High-Risk Action)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Admin as Admin User
-    participant AgentCtrl as AgentsController
-    participant AgentSvc as AgentsService
-    participant DB as Prisma DB
+    actor Agent as AI Agent
+    participant Shim as Shell Shim (rm.py)
+    participant Daemon as SentinelAI Daemon (:8765)
+    actor User as Human User
+    participant UI as Tauri Desktop App
+    participant DB as SQLite (audit_logs)
 
-    Admin->>AgentCtrl: POST /agents {name, type: RESEARCH, riskLevel: MEDIUM}
-    AgentCtrl->>AgentSvc: createAgent(adminId, dto)
-    AgentSvc->>DB: agent.create(...)
-    DB-->>AgentSvc: createdAgent
-    AgentSvc-->>AgentCtrl: agentData
-    AgentCtrl-->>Admin: HTTP 201 Created
-
-    Admin->>AgentCtrl: POST /agents/:id/tools {toolIds: ["tool-1", "tool-2"]}
-    AgentCtrl->>AgentSvc: assignTools(agentId, toolIds)
-    AgentSvc->>DB: agentTool.createMany(...)
-    DB-->>AgentSvc: success
-    AgentSvc-->>AgentCtrl: updatedAgentWithTools
-    AgentCtrl-->>Admin: HTTP 200 OK { success: true, data: agentWithTools }
+    Agent->>Shim: rm ~/project/untracked_code.py
+    Shim->>Daemon: POST /daemon/intercept
+    Daemon->>Daemon: Evaluate Risk -> MEDIUM (untracked file)
+    Daemon->>UI: Emit Permission Required Notification
+    Daemon->>Daemon: Wait on asyncio.Event (30s timeout)
+    UI->>User: Display PermissionPromptDialog
+    Note over User, UI: User reviews agent, path, risk score, and diff
+    User->>UI: Clicks [Allow Once]
+    UI->>Daemon: POST /daemon/user-response {action_id, user_choice: "ALLOW"}
+    Daemon->>Daemon: Unblock async event -> USER_ALLOWED
+    Daemon->>DB: Log Action (outcome: USER_ALLOWED)
+    Daemon-->>Shim: HTTP 200 {decision: "ALLOW"}
+    Shim->>Shim: Execute deletion
+    Shim-->>Agent: Exit code 0
 ```

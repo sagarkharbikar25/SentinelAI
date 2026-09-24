@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 import tomllib
 from datetime import datetime
@@ -63,21 +64,16 @@ async def get_status():
 
 @router.get("/policies", response_model=List[PolicyItem])
 async def list_policies():
-    """Returns active policy rules loaded from the daemon policy directory."""
     policy_engine.load_policies(POLICIES_DIR)
-    return [
-        PolicyItem(name=rule.policy_name, scope=rule.path_pattern or "*", action=rule.effect.value)
-        for rule in policy_engine.rules
-    ]
+    return [PolicyItem(name=rule.policy_name, scope=rule.path_pattern or "*", action=rule.effect.value) for rule in policy_engine.rules]
 
 
 @router.post("/policies", response_model=PolicyItem, status_code=201)
 async def create_policy(req: CreatePolicyRequest):
-    """Creates a simple active policy rule in the daemon policy directory."""
     safe_name = re.sub(r"[^a-z0-9]+", "-", req.name.lower()).strip("-") or "policy"
     policy_path = POLICIES_DIR / f"{safe_name}.toml"
     policy_path.write_text(
-        f'''[policy]\nname = {req.name!r}\ndescription = {req.rule!r}\nis_active = true\n\n[[rules]]\nagent_type = "*"\naction_type = "*"\npath_pattern = {req.scope!r}\noperation = "*"\neffect = "REQUIRE_CONFIRMATION"\nreason = {req.rule!r}\npriority = 100\n''',
+        f'''[policy]\nname = {json.dumps(req.name)}\ndescription = {json.dumps(req.rule)}\nis_active = true\n\n[[rules]]\nagent_type = "*"\naction_type = "*"\npath_pattern = {json.dumps(req.scope)}\noperation = "*"\neffect = "REQUIRE_CONFIRMATION"\nreason = {json.dumps(req.rule)}\npriority = 100\n''',
         encoding="utf-8",
     )
     policy_engine.load_policies(POLICIES_DIR)
@@ -86,7 +82,6 @@ async def create_policy(req: CreatePolicyRequest):
 
 @router.get("/tools", response_model=List[ToolItem])
 async def list_tools():
-    """Returns registered agent manifests and their permitted operations."""
     tools: List[ToolItem] = []
     manifest_dirs = [MANIFESTS_DIR, Path(__file__).resolve().parents[2] / "manifests"]
     manifest_paths = {path for directory in manifest_dirs for path in directory.glob("*.toml")}
@@ -94,11 +89,9 @@ async def list_tools():
         try:
             with manifest_path.open("rb") as manifest_file:
                 manifest = tomllib.load(manifest_file)
-            agent = manifest.get("agent", {})
-            owner = agent.get("name", manifest_path.stem)
-            operations = manifest.get("permissions", {}).get("allowed_operations", [])
-            for operation in operations or ["UNSPECIFIED"]:
-                tools.append(ToolItem(name=f"{manifest_path.stem}.{operation.lower()}", owner=owner, status="Verified"))
+            owner = manifest.get("agent", {}).get("name", manifest_path.stem)
+            operations = manifest.get("permissions", {}).get("allowed_operations", []) or ["UNSPECIFIED"]
+            tools.extend(ToolItem(name=f"{manifest_path.stem}.{operation.lower()}", owner=owner, status="Verified") for operation in operations)
         except (OSError, tomllib.TOMLDecodeError):
             tools.append(ToolItem(name=manifest_path.stem, owner="Unknown", status="Needs review"))
     return tools

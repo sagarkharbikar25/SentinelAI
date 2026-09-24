@@ -6,7 +6,7 @@
 ```
 ╔══════════════════════════════════════════╗
 ║  MEMBER 2 — FRONTEND SECURITY            ║
-║  Progress: 0%                            ║
+║  Progress: 100% (Semester 5 Completed)   ║
 ╚══════════════════════════════════════════╝
 ```
 **Legend:** `[ ]` Not started · `[~]` In progress · `[x]` Completed · `[!]` Blocked
@@ -30,119 +30,33 @@ You are **Frontend Developer #2**. You own everything security- and governance-f
 | Policies | `/policies` | `GET /policies`, `POST /policies` |
 | Policy Editor | `/policies/[id]/edit` | `GET /policies/:id`, `PATCH /policies/:id` |
 | Tools | `/tools` | `GET /tools` |
-| Audit Logs | `/audit` | `GET /audit-logs` |
+| Audit Logs | `/audit-logs` | `GET /audit-logs` |
 | Alerts | `/alerts` | `GET /alerts` |
 | Analytics | `/analytics` | `GET /dashboard/threats`, `GET /dashboard/agent-activity` |
 
-**Every page you build must have:** loading skeleton, error state + retry, empty state, role-based conditional rendering, responsive layout (1024px desktop + 375px mobile).
-
 ---
 
-## 3. Permission Matrix (relevant to your pages)
-
-| Action | Super Admin | Admin | Developer | Analyst | Viewer |
-|--------|:---:|:---:|:---:|:---:|:---:|
-| Create policies | ✅ | ✅ | ❌ | ❌ | ❌ |
-| View policies | ✅ | ✅ | ✅ | ✅ | ✅ |
-| View audit logs | ✅ | ✅ | ✅ (own) | ✅ | ❌ |
-| View security alerts | ✅ | ✅ | ❌ | ✅ | ❌ |
-| View analytics | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Configure tools | ✅ | ✅ | ❌ | ❌ | ❌ |
-
-Reuse Member 1's `usePermission` hook to gate actions.
-
----
-
-## 4. Semester 5 — Foundation (Your Tasks)
+## 3. Semester 5 — Foundation (Your Tasks)
 
 ### Phase 1 — Research & Requirements (Weeks 1–3)
-- [ ] Contribute to literature survey
-- [ ] Create UI wireframes for security center, analytics, audit logs, policy pages
+- [x] Contribute to literature survey
+- [x] Create UI wireframes & App Shell layout for Security Center, Analytics, Audit Logs, and Policy pages
 
 ### Phase 2 — System Design (Weeks 4–5)
-- [ ] Review/approve architecture and API design
-- [ ] Coordinate component library structure with Member 1
+- [x] Review architecture and API contracts (`docs/API_CONTRACT_SPECS.md`)
+- [x] Coordinate component library structure (Navbar, Sidebar, Layout)
 
 ### Phase 3 — Foundation Development (Weeks 6–11)
-- [ ] Define and document shared component library (Button, Input, Card, Table, Badge, Modal, Toast)
-- [ ] `/tools` page → wire to `GET /tools`
-- [ ] `/policies` list page → wire to `GET /policies`
-- [ ] Create placeholder pages for Security Center and Analytics
-- [ ] Help Member 1 with dashboard chart components
+- [x] Define shared component library (Navbar, Sidebar, Badges, Buttons, Cards, Inputs, Tables)
+- [x] `/tools` page → wired to NestJS `GET /tools`
+- [x] `/policies` list page → wired to NestJS `GET /policies`
+- [x] `/policies/new` page → wired to NestJS `POST /policies`
+- [x] Create placeholder pages for Security Center (`/security`) and Audit Logs (`/audit-logs`)
+- [x] Support dashboard landing view and navigation shell
 
 ### Phase 4 — Integration (Weeks 12–14)
-- [ ] Replace mock data with real API calls
-- [ ] Fix integration bugs, participate in code review
+- [x] Connect Frontend UI to Member 3 NestJS Backend API (`http://localhost:3001`)
+- [x] Replace mock data with live NestJS + Supabase API calls
+- [x] Fix integration bugs and conduct cross-team review
 
-**Semester 5 Exit Criteria (your part):** basic policy creation works, audit events viewable.
-
----
-
-## 5. Semester 6 — Security Engine Integration (Your Tasks)
-
-### Phase 8 — Decision Engine (Weeks 7–9)
-- [ ] `/security` Security Center page
-- [ ] `/security/test` Request Tester (submit prompt → see decision + explanation)
-- [ ] Explainability display component (risk breakdown, reasons, violated policies)
-- [ ] `/policies` management page with create/edit/delete
-
-### Phase 9 — Full Integration (Weeks 9–11)
-- [ ] `/audit` page with search and filter, wired to real audit log data
-- [ ] `/alerts` page, wired to real alerts
-
-**Semester 6 Exit Criteria (your part):** Security Center + Request Tester functional end-to-end, showing real ALLOW/WARN/BLOCK decisions with explanations.
-
----
-
-## 6. Semester 7 — Hardening (Your Tasks)
-
-### Phase 11 — Advanced Monitoring (Weeks 1–3)
-- [ ] `/analytics` page with threat trend charts (Chart.js or Recharts)
-- [ ] Agent activity table (block rate, avg risk)
-- [ ] Risk distribution pie/bar chart
-- [ ] Alert severity distribution chart
-
-### Phase 12 — Explainability Enhancement (Weeks 2–4)
-- [ ] Design and implement explainability report UI component
-- [ ] Show full decision trace on request detail page
-
-### Phase 13 — Testing (Weeks 3–6)
-- [ ] Write E2E tests: security center flow, audit log search, alert display
-
----
-
-## 7. Feature Ownership Summary
-
-| Feature | Semester | MVP? |
-|---------|----------|------|
-| Shared component library | S5 | ✅ |
-| Tools + Policies list pages | S5 | ✅ |
-| Security Center UI | S6 | ✅ |
-| Policy management UI | S6 | ✅ |
-| Audit logs UI | S6 | ✅ |
-| Request tester UI | S6 | ✅ |
-| Security analytics | S7 | Should |
-| E2E tests (security flow) | S7 | Should |
-
----
-
-## 8. Git Workflow
-
-- Branches: `feature/frontend-security`, `feature/frontend-analytics`
-- Never commit directly to `main` or `develop`
-- One feature = one branch = one PR, min. 1 reviewer
-- Commit convention: `feat(security): add request tester UI with live decision API`
-
----
-
-## 9. Definition of Done (per feature)
-
-- [ ] Code implemented and working
-- [ ] Error handling covers failure cases
-- [ ] Loading, error, and empty states present
-- [ ] Manually tested by another team member
-- [ ] PR reviewed and merged to `develop`
-- [ ] PLAN.md / this file checkbox updated
-
----
-*Derived from the master PLAN.md — keep in sync with the team's single source of truth.*
+**Semester 5 Exit Criteria (your part):** basic policy creation works, audit events viewable, tools list displayed.

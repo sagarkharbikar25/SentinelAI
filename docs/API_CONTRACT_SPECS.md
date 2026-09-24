@@ -1,257 +1,141 @@
-# SentinelAI — API Contract Specifications & TypeScript DTOs
-## Member 3 Deliverable · Semester 5 Week 1
+# SentinelAI — Daemon IPC API Specifications & Contracts
+## Master API Reference · Version 2.0 (Desktop Daemon Edition)
 
 ---
 
-## 1. Standardized API Response Formats
+## 1. Overview & Architecture
 
-All NestJS API endpoints in SentinelAI MUST return responses formatted strictly according to the standard interfaces below.
+SentinelAI Daemon runs locally at `http://127.0.0.1:8765`. It acts as the local-first authority and permission broker between AI agents (Claude Code, Cursor, scripts, MCP tools) and the host operating system.
 
-### 1.1 Success Response Wrapper
-```typescript
-export interface ApiResponseSuccess<T> {
-  success: true;
-  data: T;
-  meta?: {
-    page?: number;
-    limit?: number;
-    total?: number;
-    timestamp: string;
-  };
-}
-```
+All communication from desktop clients (Tauri UI), shell shims (`rm`, `mv`), and proxies uses standardized JSON payloads over HTTP.
 
-**Example JSON Output (HTTP 200/201):**
+---
+
+## 2. Main Interception Endpoint
+
+### `POST /daemon/intercept`
+Called by shell shims, MCP proxies, and file watchers before any file operation executes.
+
+**Request Payload:**
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "agent-uuid-1234",
-    "name": "Research Assistant",
-    "type": "RESEARCH",
-    "status": "ACTIVE"
-  },
-  "meta": {
-    "timestamp": "2026-08-11T20:36:00.000Z"
-  }
+  "agent_id": "claude-code",
+  "agent_type": "SHELL",
+  "session_id": "session-uuid-optional",
+  "action_type": "FILE_DELETE",
+  "operation": "DELETE",
+  "target_path": "/Users/developer/project/src/main.py",
+  "command": "rm src/main.py"
 }
 ```
 
----
-
-### 1.2 Error Response Wrapper
-```typescript
-export interface ApiResponseError {
-  success: false;
-  error: {
-    code: string;       // Human-readable error identifier, e.g. "AUTH_INVALID_CREDENTIALS"
-    message: string;    // Actionable message or validation error details
-    statusCode: number; // Standard HTTP status code (400, 401, 403, 404, 409, 422, 500)
-    details?: string[] | Record<string, any>;
-  };
-}
-```
-
-**Example JSON Output (HTTP 403 Forbidden):**
+**Response Payload (Immediate or after User Response):**
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "INSUFFICIENT_PERMISSIONS",
-    "message": "Role 'DEVELOPER' is not permitted to create global policies.",
-    "statusCode": 403
-  }
+  "decision": "ALLOW",
+  "action_id": "action-uuid-1234",
+  "reason_code": "AUTO_ALLOW_SAFE",
+  "explanation": "Action evaluated as low risk.",
+  "risk_score": 15,
+  "risk_category": "LOW",
+  "snapshot_taken": false
+}
+```
+
+**Outcomes:**
+* `ALLOW`: Shim proceeds with native OS command.
+* `BLOCK`: Shim aborts command, prints reason to `stderr`, and exits with code `1`.
+* `PROMPT_USER`: Daemon holds the connection and waits up to 30 seconds for user input from the Tauri UI.
+
+---
+
+## 3. User Response Endpoint (Tauri UI Bridge)
+
+### `POST /daemon/user-response`
+Called by Member 1's Tauri Permission Prompt Dialog when the user makes a choice.
+
+**Request Payload:**
+```json
+{
+  "action_id": "action-uuid-1234",
+  "user_choice": "ALLOW",
+  "remember_for_session": false
+}
+```
+
+**Response Payload:**
+```json
+{
+  "ok": true,
+  "action_id": "action-uuid-1234",
+  "final_outcome": "USER_ALLOWED",
+  "message": "Successfully applied user response: ALLOW"
 }
 ```
 
 ---
 
-## 2. Authentication Interfaces & DTOs (`/auth`)
+## 4. Session Management
 
-```typescript
-// Roles Enum
-export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  DEVELOPER = 'DEVELOPER',
-  ANALYST = 'ANALYST',
-  VIEWER = 'VIEWER',
+### `POST /daemon/session/start`
+Starts a scoped task session for an AI agent with explicitly granted directories.
+
+**Request Payload:**
+```json
+{
+  "agent_id": "claude-code",
+  "task_description": "Refactor user authentication service",
+  "granted_paths": [
+    "~/projects/my-app",
+    "~/Desktop/work"
+  ]
 }
+```
 
-// Request DTOs
-export interface RegisterDto {
-  email: string;       // Valid email format
-  name: string;        // Min length 2
-  password: string;    // Min length 8, contains letters and numbers
+**Response Payload:**
+```json
+{
+  "session_id": "sess-uuid-5678",
+  "agent_id": "claude-code",
+  "task_description": "Refactor user authentication service",
+  "granted_paths": [
+    "~/projects/my-app",
+    "~/Desktop/work"
+  ],
+  "started_at": "2026-09-23T20:30:00.000Z"
 }
+```
 
-export interface LoginDto {
-  email: string;
-  password: string;
-}
+### `POST /daemon/session/end`
+Ends an active session.
 
-// Response Payloads
-export interface AuthTokenPayload {
-  accessToken: string;
-  tokenType: 'Bearer';
-  expiresIn: number; // 3600 seconds (1 hour)
-  user: UserProfilePayload;
-}
-
-export interface UserProfilePayload {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  isActive: boolean;
-  createdAt: string;
+**Request Payload:**
+```json
+{
+  "session_id": "sess-uuid-5678"
 }
 ```
 
 ---
 
-## 3. Users Management Interfaces & DTOs (`/users`)
+## 5. UI Feeds & Health
 
-```typescript
-export interface UpdateUserDto {
-  name?: string;
-  isActive?: boolean;
-}
+### `GET /daemon/status`
+Returns daemon health, circuit breaker state, and active session ID.
 
-export interface UpdateUserRoleDto {
-  role: UserRole;
-}
-
-export interface UserQueryDto {
-  role?: UserRole;
-  isActive?: boolean;
-  page?: number;
-  limit?: number;
+**Response:**
+```json
+{
+  "running": true,
+  "version": "0.1.0",
+  "active_session_id": "sess-uuid-5678",
+  "circuit_breaker_state": "CLOSED",
+  "vault_size_mb": 0.0
 }
 ```
 
----
+### `GET /daemon/actions?limit=50&offset=0`
+Returns recent actions for Member 1's `ActivityTimeline`.
 
-## 4. Agents & Capabilities Interfaces & DTOs (`/agents`)
-
-```typescript
-export enum AgentType {
-  RESEARCH = 'RESEARCH',
-  EMAIL = 'EMAIL',
-  DATABASE = 'DATABASE',
-  CODING = 'CODING',
-}
-
-export enum AgentStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-}
-
-export enum RiskLevel {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-}
-
-// Request DTOs
-export interface CreateAgentDto {
-  name: string;
-  description: string;
-  type: AgentType;
-  riskLevel?: RiskLevel; // Default: MEDIUM
-}
-
-export interface UpdateAgentDto {
-  name?: string;
-  description?: string;
-  status?: AgentStatus;
-  riskLevel?: RiskLevel;
-}
-
-export interface AssignToolsDto {
-  toolIds: string[]; // List of tool UUIDs allowed for this agent
-}
-
-// Response Payload
-export interface AgentDetailPayload {
-  id: string;
-  name: string;
-  description: string;
-  type: AgentType;
-  status: AgentStatus;
-  riskLevel: RiskLevel;
-  ownerId: string;
-  tools: {
-    id: string;
-    name: string;
-    riskLevel: RiskLevel;
-    isAllowed: boolean;
-  }[];
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
----
-
-## 5. Tools Registry Interfaces & DTOs (`/tools`)
-
-```typescript
-export interface CreateToolDto {
-  name: string;               // e.g. "WEB_SEARCH", "SEND_EMAIL", "EXECUTE_SQL"
-  description: string;
-  riskLevel: RiskLevel;
-  requiredPermission: string; // e.g. "tools:web_search"
-}
-
-export interface UpdateToolDto {
-  description?: string;
-  riskLevel?: RiskLevel;
-  requiredPermission?: string;
-  isActive?: boolean;
-}
-```
-
----
-
-## 6. Security Policies Interfaces & DTOs (`/policies`)
-
-```typescript
-export enum PolicyEffect {
-  DENY = 'DENY',
-  REQUIRE_CONFIRMATION = 'REQUIRE_CONFIRMATION',
-}
-
-export interface CreatePolicyRuleDto {
-  agentType?: AgentType;  // null = applies to all agent types
-  toolName?: string;      // null = applies to all tools
-  operation?: string;     // e.g. "DELETE", "SEND_EMAIL", "DROP_TABLE"
-  effect: PolicyEffect;
-  reason: string;
-}
-
-export interface CreatePolicyDto {
-  name: string;
-  description: string;
-  isActive?: boolean;
-  rules: CreatePolicyRuleDto[];
-}
-
-export interface UpdatePolicyDto {
-  name?: string;
-  description?: string;
-  isActive?: boolean;
-}
-```
-
----
-
-## 7. Literature Survey — Key Security Papers & Reference Concepts
-
-| # | Paper Title / Focus Domain | Key Security Takeaway | SentinelAI Implementation Relevance |
-|---|---|---|---|
-| 1 | *Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection* (Greshake et al.) | Indirect prompt injection allows attackers to manipulate AI tools via external untrusted inputs. | Establishes the necessity for an inline security gateway evaluating prompts prior to tool calls. |
-| 2 | *Jailbreaking ChatGPT via Prompt Engineering: An Empirical Study* (Shen et al.) | Jailbreak prompts bypass safety alignment by framing malicious requests inside roleplay or encoded contexts. | Requires multi-layer prompt inspection (regex heuristics + structural analysis). |
-| 3 | *Formalizing AI Governance & Access Control in Enterprise Systems* | Traditional RBAC must be adapted for dynamic agent capabilities to prevent privilege escalation. | Justifies `@Roles()` decorator guards and agent-to-tool binding matrix (`AgentTool`). |
-| 4 | *Explainable AI in Security Operations Centers* | Security analysts require clear, human-readable rationales for why an action was blocked. | Mandates structured `explanation` and `riskBreakdown` JSON outputs for every decision. |
+### `GET /daemon/alerts?unread_only=true`
+Returns security alerts for Member 2's `AlertFeed`.
