@@ -31,6 +31,7 @@ SentinelAI/
 │   └── tests/                       # Unit & integration test suite
 ├── desktop/                         # Tauri Desktop App UI (Member 1)
 ├── extension/                       # Browser Extension MV3 (Member 2)
+├── src/                              # Unified Vite portal (Members 1 + 2)
 ├── docs/                            # API specs, sequence diagrams, and architecture docs
 ├── tests/                           # Postman collection & E2E scenarios
 ├── PLAN.md                          # Master Project Plan (v2.0)
@@ -43,6 +44,24 @@ SentinelAI/
 ---
 
 ## 🚀 Quickstart (Backend Daemon)
+
+## 🚀 Quickstart (Unified Frontend + Daemon)
+
+The canonical frontend is the root Vite portal in `src/`. It contains the Member 1 SOC dashboard and the Member 2 security routes in one shell.
+
+```powershell
+.\start-sentinelai.ps1
+```
+
+Or run the services separately:
+
+```powershell
+npm run dev
+cd daemon
+python -m sentinel.main
+```
+
+Open the unified portal at `http://localhost:5173`. The legacy `frontend/` Next.js app is not the startup target for the merged portal.
 
 ### 1. Setup Virtual Environment
 ```bash

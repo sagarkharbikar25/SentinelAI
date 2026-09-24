@@ -26,7 +26,11 @@ export function createSidebar(activeRoute = 'dashboard', onNavigate = () => {}) 
     { id: 'threat-detection', label: 'Threat Heuristics', icon: 'radar', badge: null },
     { id: 'threat-map', label: 'Global Threat Map', icon: 'public', badge: null },
     { id: 'threat-intel', label: 'Intelligence Vault', icon: 'hub', badge: 'CVEs' },
-    { id: 'reports', label: 'Official Reports', icon: 'description', badge: '3 NEW' }
+    { id: 'reports', label: 'Official Reports', icon: 'description', badge: '3 NEW' },
+    { id: 'security-center', label: 'Security Center', icon: 'security', badge: 'LIVE' },
+    { id: 'policies', label: 'Security Policies', icon: 'policy', badge: null },
+    { id: 'tools-registry', label: 'Tools Registry', icon: 'construction', badge: null },
+    { id: 'audit-logs', label: 'Audit Logs', icon: 'receipt_long', badge: null }
   ];
 
   sidebar.innerHTML = `

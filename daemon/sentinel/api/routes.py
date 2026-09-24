@@ -1,5 +1,9 @@
 import asyncio
+import json
+import re
+import tomllib
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 from uuid import uuid4
 
@@ -8,16 +12,19 @@ from sqlalchemy.orm import Session as DBSession
 
 from sentinel.api.schemas import (
     ActionLogItem,
+    CreatePolicyRequest,
     DaemonStatusResponse,
     EndSessionRequest,
     InterceptRequest,
     InterceptResponse,
+    PolicyItem,
     StartSessionRequest,
     StartSessionResponse,
+    ToolItem,
     UserResponseRequest,
     UserResponseResult,
 )
-from sentinel.config import POLICIES_DIR, PROMPT_TIMEOUT_SECONDS
+from sentinel.config import MANIFESTS_DIR, POLICIES_DIR, PROMPT_TIMEOUT_SECONDS
 from sentinel.core.decision_engine import DecisionEngine, DecisionOutcome
 from sentinel.core.manifest_checker import ManifestChecker
 from sentinel.core.policy_engine import PolicyEngine, create_default_policies
@@ -53,6 +60,41 @@ async def get_status():
         circuit_breaker_state="CLOSED",
         vault_size_mb=0.0,
     )
+
+
+@router.get("/policies", response_model=List[PolicyItem])
+async def list_policies():
+    policy_engine.load_policies(POLICIES_DIR)
+    return [PolicyItem(name=rule.policy_name, scope=rule.path_pattern or "*", action=rule.effect.value) for rule in policy_engine.rules]
+
+
+@router.post("/policies", response_model=PolicyItem, status_code=201)
+async def create_policy(req: CreatePolicyRequest):
+    safe_name = re.sub(r"[^a-z0-9]+", "-", req.name.lower()).strip("-") or "policy"
+    policy_path = POLICIES_DIR / f"{safe_name}.toml"
+    policy_path.write_text(
+        f'''[policy]\nname = {json.dumps(req.name)}\ndescription = {json.dumps(req.rule)}\nis_active = true\n\n[[rules]]\nagent_type = "*"\naction_type = "*"\npath_pattern = {json.dumps(req.scope)}\noperation = "*"\neffect = "REQUIRE_CONFIRMATION"\nreason = {json.dumps(req.rule)}\npriority = 100\n''',
+        encoding="utf-8",
+    )
+    policy_engine.load_policies(POLICIES_DIR)
+    return PolicyItem(name=req.name, scope=req.scope, action="REQUIRE_CONFIRMATION")
+
+
+@router.get("/tools", response_model=List[ToolItem])
+async def list_tools():
+    tools: List[ToolItem] = []
+    manifest_dirs = [MANIFESTS_DIR, Path(__file__).resolve().parents[2] / "manifests"]
+    manifest_paths = {path for directory in manifest_dirs for path in directory.glob("*.toml")}
+    for manifest_path in manifest_paths:
+        try:
+            with manifest_path.open("rb") as manifest_file:
+                manifest = tomllib.load(manifest_file)
+            owner = manifest.get("agent", {}).get("name", manifest_path.stem)
+            operations = manifest.get("permissions", {}).get("allowed_operations", []) or ["UNSPECIFIED"]
+            tools.extend(ToolItem(name=f"{manifest_path.stem}.{operation.lower()}", owner=owner, status="Verified") for operation in operations)
+        except (OSError, tomllib.TOMLDecodeError):
+            tools.append(ToolItem(name=manifest_path.stem, owner="Unknown", status="Needs review"))
+    return tools
 
 
 @router.post("/session/start", response_model=StartSessionResponse)

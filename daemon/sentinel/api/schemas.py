@@ -72,3 +72,21 @@ class DaemonStatusResponse(BaseModel):
     active_session_id: Optional[str] = None
     circuit_breaker_state: str = "CLOSED"
     vault_size_mb: float = 0.0
+
+
+class PolicyItem(BaseModel):
+    name: str
+    scope: str
+    action: str
+
+
+class CreatePolicyRequest(BaseModel):
+    name: str
+    scope: str
+    rule: str
+
+
+class ToolItem(BaseModel):
+    name: str
+    owner: str
+    status: str
