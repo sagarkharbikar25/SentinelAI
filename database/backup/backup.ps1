@@ -20,3 +20,5 @@ if (Get-Command pg_dump -ErrorAction SilentlyContinue) {
 } else {
     Write-Host "[SentinelAI Backup] pg_dump not found in PATH; skipped PostgreSQL export."
 }
+
+exit 0
