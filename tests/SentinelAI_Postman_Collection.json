@@ -1,0 +1,246 @@
+{
+  "info": {
+    "name": "SentinelAI Daemon API Collection (v2.0)",
+    "description": "Postman collection for SentinelAI Local Security Daemon (Port 8765) - Interception, Session Management, User Prompts, and Audit Logging.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8765",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "actionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Daemon Health & Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/daemon/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["daemon", "status"]
+        },
+        "description": "Checks daemon health, circuit breaker state, and active session."
+      }
+    },
+    {
+      "name": "Session Management",
+      "item": [
+        {
+          "name": "1. Start Agent Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"task_description\": \"Fix backend database authentication bug\",\n  \"granted_paths\": [\n    \"d:/GitHub/SentinelAI\",\n    \"~/project\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/session/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "session", "start"]
+            }
+          }
+        },
+        {
+          "name": "2. End Agent Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{sessionId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/session/end",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "session", "end"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Action Interception (Shims & Proxy)",
+      "item": [
+        {
+          "name": "1. Intercept Safe Read (AUTO-ALLOW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_READ\",\n  \"operation\": \"READ\",\n  \"target_path\": \"d:/GitHub/SentinelAI/README.md\",\n  \"command\": \"cat README.md\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/intercept",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "intercept"]
+            }
+          }
+        },
+        {
+          "name": "2. Intercept Policy Deny (.ssh delete -> HARD BLOCK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_DELETE\",\n  \"operation\": \"DELETE\",\n  \"target_path\": \"~/.ssh/id_rsa\",\n  \"command\": \"rm ~/.ssh/id_rsa\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/intercept",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "intercept"]
+            }
+          }
+        },
+        {
+          "name": "3. Intercept Untracked File (Triggers PROMPT_USER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_DELETE\",\n  \"operation\": \"DELETE\",\n  \"target_path\": \"d:/GitHub/SentinelAI/test_scratch.txt\",\n  \"command\": \"rm test_scratch.txt\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/intercept",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "intercept"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Prompts & Responses",
+      "item": [
+        {
+          "name": "1. Submit User Approval (ALLOW)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action_id\": \"{{actionId}}\",\n  \"user_choice\": \"ALLOW\",\n  \"remember_for_session\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/user-response",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "user-response"]
+            }
+          }
+        },
+        {
+          "name": "2. Submit User Rejection (BLOCK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action_id\": \"{{actionId}}\",\n  \"user_choice\": \"BLOCK\",\n  \"remember_for_session\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/daemon/user-response",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "user-response"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flight Recorder & Activity Feed",
+      "item": [
+        {
+          "name": "1. Fetch Recent Actions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/daemon/actions?limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "actions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Fetch Security Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/daemon/alerts?unread_only=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["daemon", "alerts"],
+              "query": [
+                {
+                  "key": "unread_only",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
