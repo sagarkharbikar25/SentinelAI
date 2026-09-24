@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { createPolicy } from '@/lib/daemon';
 import { ShieldAlert, ArrowLeft, Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function CreatePolicyPage() {
@@ -36,20 +36,10 @@ export default function CreatePolicyPage() {
     setError(null);
 
     try {
-      const res = await api.post('/policies', {
-        name,
-        description,
-        isActive: true,
-        rules,
-      });
-
-      if (res.data.success) {
-        router.push('/policies');
-      } else {
-        setError('Failed to create policy.');
-      }
+      await createPolicy({ name, scope: rules[0].toolName || '*', rule: description });
+      router.push('/policies');
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Error submitting policy.');
+      setError(err.message || 'Daemon offline. Start the Python service on port 8765.');
     } finally {
       setSubmitting(false);
     }

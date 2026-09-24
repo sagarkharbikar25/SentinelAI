@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { api, Policy } from '@/lib/api';
+import { getPolicies, PolicyItem } from '@/lib/daemon';
 import { ShieldAlert, Plus, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function PoliciesPage() {
-  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [policies, setPolicies] = useState<PolicyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,14 +14,9 @@ export default function PoliciesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/policies');
-      if (res.data.success) {
-        setPolicies(res.data.data);
-      } else {
-        setError('Failed to load governance policies.');
-      }
+      setPolicies(await getPolicies());
     } catch (err: any) {
-      setError(err.message || 'Error connecting to NestJS API (Port 3001).');
+      setError(err.message || 'Daemon offline. Start the Python service on port 8765.');
     } finally {
       setLoading(false);
     }
@@ -32,14 +27,15 @@ export default function PoliciesPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extrabold text-white flex items-center gap-2 tracking-wide">
-            <ShieldAlert className="w-6 h-6 text-blue-400" /> Security Governance Policies
+          <p className="portal-label text-[#93CCFF]">POLICY ENGINE // TOML AUTHORITY</p>
+          <h2 className="text-2xl font-extrabold text-white flex items-center gap-2 tracking-wide mt-1">
+            <ShieldAlert className="w-6 h-6 text-[#93CCFF]" /> Security Governance Policies
           </h2>
           <p className="text-xs text-slate-300 font-medium">
-            Define active DENY and REQUIRE_CONFIRMATION rules per agent type and execution tool (Member 2 — Semester 5).
+            Live policy rules evaluated by the Sentinel daemon before an agent action executes.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -60,60 +56,31 @@ export default function PoliciesPage() {
 
       {loading ? (
         <div className="p-12 text-center text-slate-300 text-sm animate-pulse font-medium">
-          Loading governance policies from NestJS Backend (Port 3001)...
+            Loading policies from Sentinel daemon (Port 8765)...
         </div>
       ) : error ? (
         <div className="p-4 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-sm flex items-center gap-2 font-medium">
           <AlertCircle className="w-5 h-5" /> {error}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {policies.map((policy) => (
             <div
-              key={policy.id}
-              className="p-6 rounded-2xl bg-[#13151C] border border-[#232733] space-y-4 shadow-xl"
+              key={`${policy.name}-${policy.scope}`}
+              className="portal-card p-5 space-y-3 shadow-xl"
             >
-              <div className="flex items-center justify-between border-b border-[#232733] pb-3.5">
+              <div className="flex items-center justify-between border-b border-[#3F4850]/50 pb-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
                     <h3 className="font-extrabold text-white text-lg">{policy.name}</h3>
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded bg-emerald-500/20 text-[#4EDEA3] border border-emerald-500/30 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 font-medium">{policy.description}</p>
+                  <p className="text-xs text-[#BFC7D2] font-mono">Scope: {policy.scope}</p>
                 </div>
               </div>
-
-              <div className="space-y-2.5">
-                <p className="text-xs font-bold text-slate-300 tracking-wider uppercase">
-                  Policy Security Rules ({policy.rules.length})
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {policy.rules.map((rule, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-xl bg-[#0B0C10] border border-[#232733] flex items-center justify-between text-xs shadow-inner"
-                    >
-                      <div className="space-y-1">
-                        <p className="font-semibold text-slate-200">
-                          Agent: <span className="text-blue-400 font-bold">{rule.agentType}</span> | Tool: <span className="text-purple-400 font-bold">{rule.toolName}</span>
-                        </p>
-                        <p className="text-[11px] text-slate-400 font-mono">Op: <code className="text-slate-200 bg-[#13151C] px-1.5 py-0.5 rounded border border-[#232733]">{rule.operation}</code></p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-lg text-[10px] font-extrabold tracking-wider uppercase border shadow-sm ${
-                          rule.effect === 'DENY'
-                            ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                        }`}
-                      >
-                        {rule.effect === 'DENY' ? '⛔ DENY' : '⚠️ CONFIRM'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <span className={`inline-flex px-3 py-1 rounded border text-[10px] font-bold ${policy.action === 'DENY' ? 'text-[#FFB4AB] border-[#FFB4AB]/40 bg-[#93000A]/25' : 'text-[#FFB95F] border-[#FFB95F]/40 bg-[#CA8100]/20'}`}>{policy.action}</span>
             </div>
           ))}
         </div>

@@ -41,8 +41,8 @@ export default function Sidebar() {
                 <span>{item.name}</span>
               </div>
               <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wide border ${
-                item.tag === 'Member 2' 
-                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' 
+                  item.tag === 'Member 2'
+                  ? 'bg-[#3198DC]/20 text-[#93CCFF] border-[#93CCFF]/30'
                   : 'bg-slate-800/80 text-slate-300 border-slate-700'
               }`}>
                 {item.tag}
@@ -58,7 +58,7 @@ export default function Sidebar() {
           <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
         </p>
         <p className="text-slate-400">Semester 5 Active Mode</p>
-        <p className="text-[11px] text-blue-400 font-semibold pt-1">Target: Port 3001 Connected</p>
+        <p className="text-[11px] text-[#93CCFF] font-semibold pt-1">Target: Daemon 8765 Connected</p>
       </div>
     </aside>
   );
