@@ -11,7 +11,7 @@ Sits between the OS/tools and agents like Claude Code, Cursor, or shell scripts.
 Agent (Claude Code / Cursor / script)
        │
        ▼
-   Shell Shim (rm.py, mv.py in ~/.sentinelai/shims)
+      Shell Shim (rm.py, mv.py, cp.py, chmod.py, git_clean.py in ~/.sentinelai/shims)
        │
        ▼  POST http://127.0.0.1:8765/daemon/intercept
  SentinelAI Daemon
@@ -80,7 +80,15 @@ export PATH="$HOME/.sentinelai/shims:$PATH"
 $env:Path = "$HOME\.sentinelai\shims;$env:Path"
 ```
 
-Once installed, running `rm` or `mv` in any terminal will automatically be intercepted and verified by the daemon before touching your disk.
+Once installed, running `rm`, `mv`, `cp`, `chmod`, or `git-clean` in any terminal will automatically be intercepted and verified by the daemon before touching your disk.
+
+### Semester 5 Validation
+
+```bash
+pytest tests/ -v
+```
+
+The shim tests mock the daemon decision and verify that blocked operations never reach the native filesystem command. The live demo can be run from the repository root with `scripts/test-sentinel.ps1`.
 
 ---
 
