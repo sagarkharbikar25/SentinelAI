@@ -51,10 +51,12 @@ async function daemonFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export function getDaemonStatus() {
   return daemonFetch<DaemonStatus>('/daemon/status');
 }
+export const fetchDaemonStatus = getDaemonStatus;
 
-export function getRecentActions() {
-  return daemonFetch<ActionLog[]>('/daemon/actions?limit=50');
+export function getRecentActions(limit: number = 50) {
+  return daemonFetch<ActionLog[]>(`/daemon/actions?limit=${limit}`);
 }
+export const fetchRecentActions = getRecentActions;
 
 export function getPolicies() {
   return daemonFetch<PolicyItem[]>('/daemon/policies');
