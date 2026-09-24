@@ -5,10 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sentinel.api.routes import router as daemon_router
 from sentinel.config import DAEMON_HOST, DAEMON_PORT, init_sentinel_directories
 from sentinel.db.database import init_db
+from sentinel.db.seed import seed_database
 
-# 1. Initialize filesystem and SQLite schema
+# 1. Initialize filesystem, SQLite schema, and baseline seed data
 init_sentinel_directories()
 init_db()
+try:
+    seed_database()
+except Exception:
+    pass
 
 # 2. FastAPI Application
 app = FastAPI(
