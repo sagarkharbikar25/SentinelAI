@@ -58,7 +58,7 @@ export default function CreatePolicyPage() {
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <ShieldAlert className="w-6 h-6 text-blue-400" /> Create Security Governance Policy
           </h2>
-          <p className="text-xs text-gray-400">Define policy rules for AI Agent execution gates (Member 2 — Semester 5).</p>
+          <p className="text-xs text-gray-400">Define policy rules and execution gates for autonomous agent security.</p>
         </div>
       </div>
 

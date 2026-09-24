@@ -15,11 +15,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-[#0B0F19] text-gray-100 min-h-screen flex flex-col">
+      <body className="bg-[#0A0E17] text-[#DFE2F0] min-h-screen flex flex-col">
         <Navbar />
         <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1 p-6 overflow-y-auto">
+          <main className="flex-1 p-6 overflow-y-auto bg-[#0F131D]/80">
             {children}
           </main>
         </div>

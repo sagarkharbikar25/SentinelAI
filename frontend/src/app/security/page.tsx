@@ -47,7 +47,7 @@ export default function SecurityCenterPage() {
     const form = new FormData(event.currentTarget);
     try {
       const result = await interceptAction({
-        agent_id: 'member2-request-tester',
+        agent_id: 'sentinel-request-tester',
         agent_type: 'SHELL',
         action_type: `FILE_${form.get('operation')}`,
         operation: String(form.get('operation')),
