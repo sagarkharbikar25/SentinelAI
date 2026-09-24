@@ -1,0 +1,30 @@
+[agent]
+name = "Claude Code"
+type = "MCP"
+
+[permissions]
+allowed_paths = [
+    "~/project/**",
+    "d:/GitHub/SentinelAI/**",
+]
+denied_paths = [
+    "~/.ssh/**",
+    "~/.env*",
+    "**/.env*",
+    "~/Documents/**",
+    "C:/Windows/**",
+    "/etc/**",
+]
+allowed_operations = [
+    "READ",
+    "WRITE",
+    "DELETE_INSIDE_PROJECT",
+]
+denied_operations = [
+    "EXECUTE_OUTSIDE_PROJECT",
+    "NETWORK_OUTSIDE_LOCALHOST",
+]
+
+[limits]
+max_deletes_per_minute = 10
+max_files_per_operation = 20

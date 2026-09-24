@@ -1,4 +1,5 @@
 import { agentStats, currentInterception, activityFeed, vaultFiles, agentRegistry, securityPolicies } from '../../data/agentSecurityData.js';
+import { createLiveDaemonPanel } from './LiveDaemonPanel.js';
 
 export function createAgentSecurityView(toast = { show: () => {} }) {
   const container = document.createElement('div');
@@ -485,6 +486,9 @@ export function createAgentSecurityView(toast = { show: () => {} }) {
 
     </section>
   `;
+
+  const liveDaemonPanel = createLiveDaemonPanel(toast);
+  container.insertBefore(liveDaemonPanel, container.firstChild);
 
   // Countdown timer logic
   function startCountdown() {
