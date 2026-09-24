@@ -1,0 +1,182 @@
+/* SENTINAL AI Design System Tokens */
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+:root {
+  --color-bg: #0f131d;
+  --color-surface: #0f131d;
+  --color-surface-dim: #0f131d;
+  --color-surface-lowest: #0a0e17;
+  --color-surface-low: #181b25;
+  --color-surface-container: #1c1f29;
+  --color-surface-high: #262a34;
+  --color-surface-highest: #31353f;
+  --color-surface-bright: #353944;
+
+  --color-primary: #93ccff;
+  --color-primary-dim: #93ccff;
+  --color-primary-fixed: #cce5ff;
+  --color-primary-container: #3198dc;
+  --color-on-primary: #003351;
+  --color-on-primary-container: #002c47;
+  --color-primary-glow: rgba(147, 204, 255, 0.35);
+
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+  --color-secondary-container: #a40217;
+  --color-on-secondary-container: #ffaea8;
+
+  --color-tertiary: #ffb95f;
+  --color-tertiary-container: #ca8100;
+  --color-on-tertiary: #472a00;
+  --color-on-tertiary-container: #3e2400;
+
+  --color-emerald: #4edea3;
+  --color-emerald-container: #00a572;
+  --color-on-emerald: #003824;
+
+  --color-outline: #89929b;
+  --color-outline-variant: #3f4850;
+  --color-on-surface: #dfe2f0;
+  --color-on-surface-variant: #bfc7d2;
+  --color-inverse-surface: #dfe2f0;
+
+  /* Fonts */
+  --font-display: 'Chivo', 'Public Sans', sans-serif;
+  --font-headline: 'Chivo', 'Public Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-lg: 1.25rem;
+  --space-xl: 1.75rem;
+  --gutter: 0.75rem;
+  --margin: 1rem;
+
+  /* Border radius */
+  --radius-sm: 0.125rem;
+  --radius-default: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-hud: 0 0 16px rgba(49, 152, 220, 0.18);
+  --shadow-critical: 0 0 20px rgba(164, 2, 23, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--color-bg);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 18px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-lowest);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+/* Material Symbols icon sizing helper */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Tactical HUD & Mil-Spec Accents */
+.tactical-border {
+  border: 1px solid var(--color-outline-variant);
+}
+.tactical-border-subtle {
+  border: 1px solid rgba(63, 72, 80, 0.4);
+}
+.tactical-card {
+  background-color: var(--color-surface-lowest);
+  border: 1px solid rgba(63, 72, 80, 0.45);
+  border-radius: var(--radius-default);
+  position: relative;
+}
+.tactical-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid var(--color-primary);
+  border-right: 2px solid var(--color-primary);
+  pointer-events: none;
+}
+.tactical-corner-error {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid var(--color-error);
+  border-right: 2px solid var(--color-error);
+  pointer-events: none;
+}
+.tactical-corner-tertiary {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid var(--color-tertiary);
+  border-right: 2px solid var(--color-tertiary);
+  pointer-events: none;
+}
+
+/* Pulse & Ping Keyframes */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.1); }
+}
+.pulse-anim {
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+.scanline-effect {
+  position: relative;
+  overflow: hidden;
+}
+.scanline-effect::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(147, 204, 255, 0.4), transparent);
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+}

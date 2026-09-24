@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SENTINAL AI - National Cyber Threat Detection &amp; SOC Command Portal</title>
+  <meta name="description" content="Mission-critical cyber threat intelligence, real-time SOC defense telemetry, AI heuristic sandbox, and autonomous agent runtime security." />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface-container': '#1c1f29',
+            'surface-container-low': '#181b25',
+            'surface-container-lowest': '#0a0e17',
+            'surface-container-high': '#262a34',
+            'surface-container-highest': '#31353f',
+            'surface-bright': '#353944',
+            'surface-dim': '#0f131d',
+            'surface': '#0f131d',
+            'background': '#0f131d',
+            'primary': '#93ccff',
+            'primary-container': '#3198dc',
+            'on-primary': '#003351',
+            'on-primary-container': '#002c47',
+            'primary-fixed': '#cce5ff',
+            'primary-fixed-dim': '#93ccff',
+            'error': '#ffb4ab',
+            'error-container': '#93000a',
+            'on-error': '#690005',
+            'on-error-container': '#ffdad6',
+            'secondary': '#ffb3ad',
+            'secondary-container': '#a40217',
+            'on-secondary-container': '#ffaea8',
+            'tertiary': '#ffb95f',
+            'tertiary-container': '#ca8100',
+            'outline': '#89929b',
+            'outline-variant': '#3f4850',
+            'on-surface': '#dfe2f0',
+            'on-surface-variant': '#bfc7d2'
+          },
+          fontFamily: {
+            'display': ['Chivo', 'Public Sans', 'sans-serif'],
+            'headline': ['Chivo', 'Public Sans', 'sans-serif'],
+            'body': ['Inter', 'sans-serif'],
+            'mono': ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Component Styles & Design Tokens -->
+  <link rel="stylesheet" href="./src/styles/design-tokens.css" />
+  <link rel="stylesheet" href="./src/styles/components.css" />
+</head>
+<body class="bg-surface text-on-surface antialiased select-none">
+  <!-- Application Root -->
+  <div id="app"></div>
+
+  <!-- Main JavaScript App -->
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
