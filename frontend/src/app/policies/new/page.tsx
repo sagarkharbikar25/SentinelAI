@@ -10,13 +10,16 @@ export default function CreatePolicyPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [rules, setRules] = useState([
-    { agentType: 'DATABASE', toolName: 'EXECUTE_SQL', operation: 'DROP_TABLE', effect: 'DENY' },
+    { agentType: 'AUTONOMOUS', toolName: 'sentinel_canary.env', operation: 'DELETE', effect: 'DENY' },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const addRule = () => {
-    setRules([...rules, { agentType: 'EMAIL', toolName: 'SEND_EMAIL', operation: 'BULK_SEND', effect: 'REQUIRE_CONFIRMATION' }]);
+    setRules([
+      ...rules,
+      { agentType: 'SHELL', toolName: '~/.ssh/*', operation: 'READ', effect: 'REQUIRE_CONFIRMATION' },
+    ]);
   };
 
   const removeRule = (index: number) => {
@@ -47,49 +50,55 @@ export default function CreatePolicyPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 border-b border-[#3F4850]/40 pb-4">
         <button
           onClick={() => router.back()}
-          className="p-2 rounded-lg bg-[#16181D] hover:bg-[#1E2027] text-gray-400 hover:text-white border border-[#262933] transition"
+          className="p-2 rounded-lg bg-[#181B25] hover:bg-[#1E2330] text-[#89929B] hover:text-white border border-[#3F4850]/60 transition"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <ShieldAlert className="w-6 h-6 text-blue-400" /> Create Security Governance Policy
+          <div className="flex items-center gap-2 font-mono text-[10px] tracking-widest text-[#93CCFF] uppercase font-bold">
+            <span className="w-2 h-2 rounded-full bg-[#93CCFF] animate-pulse"></span>
+            GOVERNANCE RULE DESIGNER
+          </div>
+          <h2 className="text-xl font-extrabold text-white flex items-center gap-2 mt-0.5">
+            <ShieldAlert className="w-5 h-5 text-[#93CCFF]" /> Create Security Governance Policy
           </h2>
-          <p className="text-xs text-gray-400">Define policy rules and execution gates for autonomous agent security.</p>
+          <p className="text-xs text-[#BFC7D2]">
+            Define TOML policy rules and pre-execution evaluation gates for autonomous agents.
+          </p>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" /> {error}
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-[#FFB4AB] text-xs font-mono flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="p-6 rounded-xl bg-[#16181D] border border-[#262933] space-y-6">
+      <form onSubmit={handleSubmit} className="p-6 rounded-xl bg-[#0E131F] border border-[#3F4850]/50 space-y-6 font-mono shadow-xl">
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Policy Name</label>
+            <label className="block text-xs font-bold text-[#89929B] uppercase mb-1.5">Policy Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Strict Database Guard Policy"
-              className="w-full px-3.5 py-2 rounded-lg bg-[#0D0E12] border border-[#262933] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+              placeholder="e.g., Strict Sensitive Directory Guard"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-[#141824] border border-[#3F4850]/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#93CCFF]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Policy Description</label>
+            <label className="block text-xs font-bold text-[#89929B] uppercase mb-1.5">Policy Description / Intent</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the governance rules enforced by this policy..."
+              placeholder="Describe the governance rules enforced by this policy TOML..."
               rows={3}
-              className="w-full px-3.5 py-2 rounded-lg bg-[#0D0E12] border border-[#262933] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-[#141824] border border-[#3F4850]/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#93CCFF] resize-none"
               required
             />
           </div>
@@ -97,20 +106,20 @@ export default function CreatePolicyPage() {
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Policy Security Rules</h4>
+            <h4 className="text-xs font-bold text-[#89929B] uppercase tracking-wider">Policy Security Rules</h4>
             <button
               type="button"
               onClick={addRule}
-              className="flex items-center gap-1.5 px-3 py-1 rounded bg-blue-600/20 text-blue-400 border border-blue-500/30 text-xs hover:bg-blue-600/30 transition"
+              className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#3198DC]/20 text-[#93CCFF] border border-[#93CCFF]/30 text-xs hover:bg-[#3198DC]/30 transition"
             >
               <Plus className="w-3.5 h-3.5" /> Add Rule
             </button>
           </div>
 
           {rules.map((rule, idx) => (
-            <div key={idx} className="p-4 rounded-lg bg-[#0D0E12] border border-[#262933] grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+            <div key={idx} className="p-4 rounded-lg bg-[#141824] border border-[#3F4850]/40 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-center">
               <div>
-                <label className="block text-[10px] text-gray-400 mb-1">Agent Type</label>
+                <label className="block text-[10px] text-[#89929B] uppercase mb-1">Agent Type</label>
                 <select
                   value={rule.agentType}
                   onChange={(e) => {
@@ -118,17 +127,17 @@ export default function CreatePolicyPage() {
                     newRules[idx].agentType = e.target.value;
                     setRules(newRules);
                   }}
-                  className="w-full px-2.5 py-1.5 rounded bg-[#16181D] border border-[#262933] text-xs text-white"
+                  className="w-full px-2.5 py-1.5 rounded bg-[#0E131F] border border-[#3F4850]/60 text-xs text-white"
                 >
-                  <option value="RESEARCH">RESEARCH</option>
-                  <option value="EMAIL">EMAIL</option>
-                  <option value="DATABASE">DATABASE</option>
-                  <option value="CODING">CODING</option>
+                  <option value="AUTONOMOUS">AUTONOMOUS</option>
+                  <option value="SHELL">SHELL</option>
+                  <option value="MCP">MCP</option>
+                  <option value="BROWSER">BROWSER</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-[10px] text-gray-400 mb-1">Tool Name</label>
+                <label className="block text-[10px] text-[#89929B] uppercase mb-1">Path Scope / Target</label>
                 <input
                   type="text"
                   value={rule.toolName}
@@ -137,12 +146,13 @@ export default function CreatePolicyPage() {
                     newRules[idx].toolName = e.target.value;
                     setRules(newRules);
                   }}
-                  className="w-full px-2.5 py-1.5 rounded bg-[#16181D] border border-[#262933] text-xs text-white"
+                  className="w-full px-2.5 py-1.5 rounded bg-[#0E131F] border border-[#3F4850]/60 text-xs text-white"
+                  placeholder="e.g. ~/.ssh/* or *.env"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] text-gray-400 mb-1">Operation</label>
+                <label className="block text-[10px] text-[#89929B] uppercase mb-1">Operation</label>
                 <input
                   type="text"
                   value={rule.operation}
@@ -151,13 +161,14 @@ export default function CreatePolicyPage() {
                     newRules[idx].operation = e.target.value;
                     setRules(newRules);
                   }}
-                  className="w-full px-2.5 py-1.5 rounded bg-[#16181D] border border-[#262933] text-xs text-white"
+                  className="w-full px-2.5 py-1.5 rounded bg-[#0E131F] border border-[#3F4850]/60 text-xs text-white"
+                  placeholder="DELETE, WRITE, READ"
                 />
               </div>
 
               <div className="flex items-center gap-2">
                 <div className="flex-1">
-                  <label className="block text-[10px] text-gray-400 mb-1">Effect</label>
+                  <label className="block text-[10px] text-[#89929B] uppercase mb-1">Effect</label>
                   <select
                     value={rule.effect}
                     onChange={(e) => {
@@ -165,9 +176,9 @@ export default function CreatePolicyPage() {
                       newRules[idx].effect = e.target.value as any;
                       setRules(newRules);
                     }}
-                    className="w-full px-2.5 py-1.5 rounded bg-[#16181D] border border-[#262933] text-xs text-white"
+                    className="w-full px-2.5 py-1.5 rounded bg-[#0E131F] border border-[#3F4850]/60 text-xs text-white"
                   >
-                    <option value="DENY">DENY</option>
+                    <option value="DENY">DENY (BLOCK)</option>
                     <option value="REQUIRE_CONFIRMATION">REQUIRE_CONFIRMATION</option>
                   </select>
                 </div>
@@ -175,7 +186,7 @@ export default function CreatePolicyPage() {
                   <button
                     type="button"
                     onClick={() => removeRule(idx)}
-                    className="p-2 text-gray-500 hover:text-red-400 transition mt-4"
+                    className="p-2 text-slate-500 hover:text-red-400 transition mt-4"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -185,20 +196,20 @@ export default function CreatePolicyPage() {
           ))}
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-[#262933]">
+        <div className="flex justify-end gap-3 pt-4 border-t border-[#3F4850]/40">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 rounded-lg bg-[#16181D] hover:bg-[#1E2027] text-xs text-gray-300 font-medium border border-[#262933] transition"
+            className="px-4 py-2 rounded-lg bg-[#181B25] hover:bg-[#1E2330] text-xs text-[#DFE2F0] font-bold border border-[#3F4850]/60 transition"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-lg shadow-blue-500/20 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#3198DC] hover:bg-[#93CCFF] text-xs font-bold text-[#002C47] shadow-md transition disabled:opacity-50"
           >
-            <CheckCircle2 className="w-4 h-4" /> {submitting ? 'Saving Policy...' : 'Save Policy'}
+            <CheckCircle2 className="w-4 h-4" /> {submitting ? 'Writing TOML Policy...' : 'Save Policy'}
           </button>
         </div>
       </form>

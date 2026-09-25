@@ -97,3 +97,72 @@ export function interceptAction(input: {
     body: JSON.stringify(input),
   });
 }
+
+export function startSession(input: { agent_id: string; task_description: string; granted_paths: string[] }) {
+  return daemonFetch<{
+    session_id: string;
+    agent_id: string;
+    task_description: string;
+    granted_paths: string[];
+    started_at: string;
+  }>('/daemon/session/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export function endSession(sessionId: string) {
+  return daemonFetch<{ ok: boolean; session_id: string; ended_at: string }>('/daemon/session/end', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+}
+
+export function respondToPrompt(actionId: string, userChoice: 'ALLOW' | 'BLOCK') {
+  return daemonFetch<{
+    ok: boolean;
+    action_id: string;
+    final_outcome: string;
+    message: string;
+  }>('/daemon/user-response', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action_id: actionId, user_choice: userChoice }),
+  });
+}
+
+export type ActionExplanation = {
+  provider: string;
+  model_name: string;
+  silent_activity: string;
+  security_warning: string;
+  recommended_action: string;
+  is_llm_powered: boolean;
+};
+
+export function explainAction(input: {
+  agent_id?: string;
+  action_type?: string;
+  operation?: string;
+  target_path?: string | null;
+  risk_score?: number;
+  command?: string | null;
+}) {
+  return daemonFetch<ActionExplanation>('/daemon/explain', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  }).catch(() => ({
+    provider: 'Sentinel Heuristic Brain (Local Fallback)',
+    model_name: 'Deterministic Pattern & Manifest Engine',
+    silent_activity: `Agent '${input.agent_id || 'AI Agent'}' requested background ${input.operation || 'operation'} on '${input.target_path || 'system'}'.`,
+    security_warning: `Deterministic evaluation scored this event at ${input.risk_score ?? 50}/100.`,
+    recommended_action: (input.risk_score ?? 50) >= 80 ? 'BLOCK' : 'PROMPT',
+    is_llm_powered: false,
+  }));
+}
+
+
+

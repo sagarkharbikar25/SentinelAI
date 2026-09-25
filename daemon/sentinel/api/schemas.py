@@ -90,3 +90,21 @@ class ToolItem(BaseModel):
     name: str
     owner: str
     status: str
+
+
+class ExplainRequest(BaseModel):
+    agent_id: str = "claude-code"
+    action_type: str = "FILE_DELETE"
+    operation: str = "DELETE"
+    target_path: Optional[str] = None
+    risk_score: int = 50
+    command: Optional[str] = None
+
+
+class ExplainResponse(BaseModel):
+    provider: str
+    model_name: str
+    silent_activity: str
+    security_warning: str
+    recommended_action: str
+    is_llm_powered: bool

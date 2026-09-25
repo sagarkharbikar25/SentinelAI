@@ -23,6 +23,11 @@ module.exports = {
           100: '#F1F5F9',
         },
       },
+      fontFamily: {
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        heading: ['Chivo', 'sans-serif'],
+      },
     },
   },
   plugins: [],

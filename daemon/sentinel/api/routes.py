@@ -15,6 +15,8 @@ from sentinel.api.schemas import (
     CreatePolicyRequest,
     DaemonStatusResponse,
     EndSessionRequest,
+    ExplainRequest,
+    ExplainResponse,
     InterceptRequest,
     InterceptResponse,
     PolicyItem,
@@ -26,6 +28,7 @@ from sentinel.api.schemas import (
 )
 from sentinel.config import MANIFESTS_DIR, POLICIES_DIR, PROMPT_TIMEOUT_SECONDS
 from sentinel.core.decision_engine import DecisionEngine, DecisionOutcome
+from sentinel.core.llm_explainer import LLMExplainer
 from sentinel.core.manifest_checker import ManifestChecker
 from sentinel.core.policy_engine import PolicyEngine, create_default_policies
 from sentinel.core.risk_scorer import RiskScorer
@@ -43,6 +46,7 @@ policy_engine.load_policies(POLICIES_DIR)
 manifest_checker = ManifestChecker()
 risk_scorer = RiskScorer()
 decision_engine = DecisionEngine(manifest_checker, risk_scorer, policy_engine)
+llm_explainer = LLMExplainer()
 
 # In-memory synchronization latch for interactive user prompts
 pending_events: Dict[str, asyncio.Event] = {}
@@ -310,7 +314,7 @@ async def list_actions(
                 target_path=a.target_path,
                 outcome=outcome,
                 risk_score=a.risk_score,
-                created_at=a.created_at.isoformat(),
+                created_at=(a.created_at.isoformat() + "Z") if a.created_at else "",
             )
         )
     return items
@@ -335,7 +339,7 @@ async def list_alerts(
             "alert_type": a.alert_type,
             "action_id": a.action_id,
             "is_read": a.is_read,
-            "created_at": a.created_at.isoformat(),
+            "created_at": (a.created_at.isoformat() + "Z") if a.created_at else "",
         }
         for a in alerts
     ]
@@ -350,3 +354,27 @@ async def mark_alert_read(alert_id: str, db: DBSession = Depends(get_db)):
     alert.is_read = True
     db.commit()
     return {"ok": True, "alert_id": alert_id}
+
+
+@router.post("/explain", response_model=ExplainResponse)
+async def explain_action(req: ExplainRequest):
+    """
+    Translates silent background AI agent activities and warnings into plain English
+    using local Ollama (e.g., llama3.2:1b, qwen2.5:0.5b, phi3:mini) with a fast heuristic fallback.
+    """
+    exp = llm_explainer.explain_action(
+        agent_id=req.agent_id,
+        action_type=req.action_type,
+        operation=req.operation,
+        target_path=req.target_path,
+        risk_score=req.risk_score,
+        command=req.command,
+    )
+    return ExplainResponse(
+        provider=exp.provider,
+        model_name=exp.model_name,
+        silent_activity=exp.silent_activity,
+        security_warning=exp.security_warning,
+        recommended_action=exp.recommended_action,
+        is_llm_powered=exp.is_llm_powered,
+    )
