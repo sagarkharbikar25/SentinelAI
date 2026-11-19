@@ -56,8 +56,8 @@ async function daemonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function getDaemonStatus() {
-  return daemonFetch<DaemonStatus>('/daemon/status');
+export function getDaemonStatus(signal?: AbortSignal) {
+  return daemonFetch<DaemonStatus>('/daemon/status', { signal });
 }
 export const fetchDaemonStatus = getDaemonStatus;
 
