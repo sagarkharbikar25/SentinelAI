@@ -2,15 +2,11 @@
 
 import React, { useState } from 'react';
 import {
-  FlaskConical,
   Play,
   CheckCircle2,
-  AlertTriangle,
-  RotateCcw,
-  ShieldAlert,
-  Terminal,
-  FileCheck,
 } from 'lucide-react';
+import { useDaemon } from '@/context/DaemonContext';
+import OfflineBanner from '@/components/ui/OfflineBanner';
 
 interface TestCase {
   id: string;
@@ -81,40 +77,55 @@ const testMatrix: TestCase[] = [
 ];
 
 export default function LabPage() {
+  const { status } = useDaemon();
+  const isOnline = status === 'online';
+
   const [isRunningAll, setIsRunningAll] = useState(false);
-  const [executedCount, setExecutedCount] = useState(7);
+  const [executedCount, setExecutedCount] = useState(testMatrix.length);
 
   const handleRunChaosSuite = () => {
+    if (!isOnline) return;
     setIsRunningAll(true);
     setTimeout(() => {
       setIsRunningAll(false);
-      setExecutedCount(7);
+      setExecutedCount(testMatrix.length);
     }, 1500);
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E2EAE4] pb-6">
+      <OfflineBanner />
+
+      {/* Header (F1: White Headings, F9: Dynamic Range T1-T7) */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-xs font-mono font-medium text-amber-700">
+            <span
+              className={`size-2 rounded-full ${
+                isOnline ? 'bg-accent-amber animate-pulse' : 'bg-accent-rose'
+              }`}
+            />
+            <span
+              className={`text-xs font-mono font-medium ${
+                isOnline ? 'text-accent-amber' : 'text-accent-rose'
+              }`}
+            >
               Isolated chaos workspace &bull; Ground-truth recovery
             </span>
           </div>
-          <h1 className="text-3xl font-heading font-extrabold text-[#111915] tracking-tight text-balance">
+          <h1 className="text-3xl font-heading font-extrabold text-text-primary tracking-tight text-balance">
             Test Lab &amp; Chaos VM
           </h1>
-          <p className="text-xs text-[#536459] text-pretty max-w-2xl">
-            Controlled mutation playground for evaluating agent behavior against T1–T15 threat vectors with automated baseline recovery.
+          <p className="text-xs text-text-secondary text-pretty max-w-2xl">
+            Controlled mutation playground for evaluating agent behavior against T1–T{testMatrix.length} threat vectors with automated baseline recovery.
           </p>
         </div>
 
         <button
           onClick={handleRunChaosSuite}
-          disabled={isRunningAll}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-medium transition-colors shadow-xs disabled:opacity-50"
+          disabled={isRunningAll || !isOnline}
+          title={!isOnline ? 'Daemon offline. Start local service on port 8765 to execute chaos tests.' : undefined}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:opacity-90 text-canvas text-xs font-bold transition-opacity shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Play className={`size-3.5 ${isRunningAll ? 'animate-spin' : ''}`} />
           <span>{isRunningAll ? 'Executing chaos suite...' : 'Run all chaos tests'}</span>
@@ -123,32 +134,32 @@ export default function LabPage() {
 
       {/* Guided 3-Step Wizard Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-[#059669] font-semibold">
-            <span className="size-5 rounded-full bg-[#ECFDF5] flex items-center justify-center text-[10px]">1</span>
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-mono text-accent-emerald font-semibold">
+            <span className="size-5 rounded-full bg-accent-emerald/15 flex items-center justify-center text-[10px]">1</span>
             <span>Provision Workspace</span>
           </div>
-          <p className="text-xs text-[#536459] leading-relaxed">
+          <p className="text-xs text-text-secondary leading-relaxed">
             Staging directory provisioned with baseline files and SHA-256 ground truth manifest.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-amber-700 font-semibold">
-            <span className="size-5 rounded-full bg-amber-50 flex items-center justify-center text-[10px]">2</span>
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-mono text-accent-amber font-semibold">
+            <span className="size-5 rounded-full bg-accent-amber/15 flex items-center justify-center text-[10px]">2</span>
             <span>Inject Chaos Agent</span>
           </div>
-          <p className="text-xs text-[#536459] leading-relaxed">
+          <p className="text-xs text-text-secondary leading-relaxed">
             Agent executes file deletion, destructive overwrite, or unauthorized traversal vectors.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-sky-700 font-semibold">
-            <span className="size-5 rounded-full bg-sky-50 flex items-center justify-center text-[10px]">3</span>
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-mono text-accent font-semibold">
+            <span className="size-5 rounded-full bg-accent/15 flex items-center justify-center text-[10px]">3</span>
             <span>Verify &amp; Restore</span>
           </div>
-          <p className="text-xs text-[#536459] leading-relaxed">
+          <p className="text-xs text-text-secondary leading-relaxed">
             Automated verification checks integrity and restores snapshot from content-addressed vault.
           </p>
         </div>
@@ -157,11 +168,11 @@ export default function LabPage() {
       {/* Test Matrix */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-heading font-bold text-[#111915]">
-            Chaos Test Matrix (T1–T7 Empirical Suite)
+          <h2 className="text-base font-heading font-bold text-text-primary">
+            Chaos Test Matrix (T1–T{testMatrix.length} Empirical Suite)
           </h2>
-          <span className="text-xs font-mono text-[#059669] font-medium px-2.5 py-1 rounded-full bg-[#ECFDF5] border border-[#A7F3D0]">
-            {executedCount}/7 Verified Passed
+          <span className="text-xs font-mono text-accent-emerald font-medium px-2.5 py-1 rounded-full bg-accent-emerald/15 border border-accent-emerald/30">
+            {isOnline ? `${executedCount}/${testMatrix.length} Verified Passed` : 'Daemon Offline (Idle)'}
           </span>
         </div>
 
@@ -169,30 +180,30 @@ export default function LabPage() {
           {testMatrix.map((tc) => (
             <div
               key={tc.id}
-              className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all space-y-3"
+              className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors space-y-3"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-[#F4F7F5] border border-[#E2EAE4] text-xs font-mono font-bold text-[#111915]">
+                  <span className="px-2 py-0.5 rounded-md bg-surface border border-border text-xs font-mono font-bold text-text-primary">
                     {tc.id}
                   </span>
-                  <span className="text-xs font-heading font-bold text-[#111915]">
+                  <span className="text-xs font-heading font-bold text-text-primary">
                     {tc.name}
                   </span>
                 </div>
-                <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-700 font-medium px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+                <span className="flex items-center gap-1 text-[11px] font-mono text-accent-emerald font-medium px-2 py-0.5 rounded-full bg-accent-emerald/15 border border-accent-emerald/30">
                   <CheckCircle2 className="size-3" />
-                  {tc.status}
+                  {isOnline ? tc.status : 'OFFLINE'}
                 </span>
               </div>
 
-              <p className="text-xs text-[#536459] leading-relaxed">
+              <p className="text-xs text-text-secondary leading-relaxed">
                 {tc.description}
               </p>
 
-              <div className="pt-2 border-t border-[#F2F6F3] flex items-center justify-between text-[11px] font-mono">
-                <span className="text-[#75887B]">Category: {tc.category}</span>
-                <span className="text-emerald-700 font-semibold">{tc.recoveryRate}</span>
+              <div className="pt-2 border-t border-border-subtle flex items-center justify-between text-[11px] font-mono">
+                <span className="text-text-muted">Category: {tc.category}</span>
+                <span className="text-accent-emerald font-semibold">{tc.recoveryRate}</span>
               </div>
             </div>
           ))}

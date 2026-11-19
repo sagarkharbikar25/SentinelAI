@@ -57,13 +57,15 @@ export default function SplashScreen({ onComplete, minDuration = 1000 }: SplashS
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F6F8F6] text-[#111915] select-none transition-opacity duration-300 ${
+      role="status"
+      aria-live="polite"
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-canvas text-text-primary select-none transition-opacity duration-300 ${
         fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
       <div className="w-full max-w-sm px-6 flex flex-col items-center text-center space-y-6">
         {/* Brand Emblem */}
-        <div className="relative size-20 rounded-2xl bg-[#FFFFFF] border border-[#D1DDD5] shadow-lg flex items-center justify-center p-2">
+        <div className="relative size-20 rounded-2xl bg-card border border-border shadow-2xl flex items-center justify-center p-2">
           <Image
             src="/logo.png"
             alt="SentinelAI Logo"
@@ -76,26 +78,26 @@ export default function SplashScreen({ onComplete, minDuration = 1000 }: SplashS
 
         {/* Title & Subtitle */}
         <div className="space-y-1">
-          <h1 className="text-2xl font-heading font-extrabold text-[#111915] tracking-tight text-balance">
-            Sentinel<span className="text-[#059669]">AI</span>
+          <h1 className="text-2xl font-heading font-extrabold text-text-primary tracking-tight text-balance">
+            Sentinel<span className="text-accent">AI</span>
           </h1>
-          <p className="text-xs text-[#536459] text-pretty">
+          <p className="text-xs text-text-secondary text-pretty">
             Autonomous agent permission broker &amp; audit plane
           </p>
         </div>
 
         {/* Progress Bar & Status Text */}
         <div className="w-full space-y-3 pt-2">
-          <div className="h-2 w-full bg-[#E2EAE4] rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-surface rounded-full overflow-hidden border border-border">
             <div
-              className="h-full bg-gradient-to-r from-[#059669] to-[#10B981] rounded-full transition-all duration-150 ease-out"
+              className="h-full bg-accent rounded-full transition-all duration-150 ease-out"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] font-mono text-[#75887B] tabular-nums">
+          <div className="flex items-center justify-between text-[11px] font-mono text-text-muted tabular-nums">
             <span className="truncate max-w-[240px] text-left">{steps[stepIndex]}</span>
-            <span className="font-bold text-[#111915]">{Math.min(progress, 100)}%</span>
+            <span className="font-bold text-text-primary">{Math.min(progress, 100)}%</span>
           </div>
         </div>
       </div>

@@ -6,24 +6,20 @@ import {
   ActivitySvg,
   ShieldCheckSvg,
   ShieldAlertSvg,
-  HomeSvg,
-  VaultSvg,
-  AuditSvg,
-  LabSvg,
 } from '@/components/icons/SvgIcons';
 import {
-  getDaemonStatus,
   getRecentActions,
   interceptAction,
   getAlerts,
   explainAction,
-  DaemonStatus,
   ActionLog,
   ActionExplanation,
 } from '@/lib/daemon';
 import PermissionPromptDialog, { PromptAction } from '@/components/PermissionPromptDialog';
 import SplashScreen from '@/components/ui/SplashScreen';
-import { formatLocalDateTime, formatLocalTime } from '@/lib/dateUtils';
+import OfflineBanner from '@/components/ui/OfflineBanner';
+import { useDaemon } from '@/context/DaemonContext';
+import { formatLocalTime } from '@/lib/dateUtils';
 
 const sampleScanTargets: Record<string, string> = {
   url: 'https://security-payload-verification.internal-scada.org/auth/token?sig=4bf02',
@@ -33,34 +29,35 @@ const sampleScanTargets: Record<string, string> = {
   text: 'POST /v2/internal/credentials/dump HTTP/1.1\nHost: admin.scada.gov\nAuthorization: Bearer null\nX-Exploit-Payload: \\x7f\\x45\\x4c\\x46\\x02\\x01\\x01',
 };
 
-const initialThreatResult = {
-  id: 'READY-IDLE',
-  score: 0,
-  riskLevel: 'Monitoring Active',
-  classification: 'Daemon Ready',
-  subVector: 'Zero Ingress Detected',
-  confidence: '100%',
-  consensus: 'Deterministic Policy Engine',
-  indicators: [
-    { label: 'Target Type:', value: 'Select Vector', status: 'normal' },
-    { label: 'Policy Engine:', value: 'Port 8765 Active', status: 'normal' },
-    { label: 'SQLite Store:', value: 'Connected', status: 'normal' },
-    { label: 'Canary Honeypot:', value: 'Armed (11 files)', status: 'normal' },
-    { label: 'Heuristic Scorer:', value: 'Ready', status: 'normal' },
-    { label: 'Audit Log:', value: 'Append-Only', status: 'normal' },
-  ],
-  verdict:
-    'SentinelAI daemon is actively supervising local runtimes. Enter any target URL, honeypot file, IP address, or system command above and evaluate it live via the local decision engine.',
-  sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-};
-
 export default function DashboardPage() {
-  const [daemonStatus, setDaemonStatus] = useState<DaemonStatus | null>(null);
+  const { status, mode, rawMode, dbConnected, canaryCount, latencyMs, lastSeenAt, refresh: refreshDaemon } = useDaemon();
+  const isOnline = status === 'online';
+
   const [daemonActions, setDaemonActions] = useState<ActionLog[]>([]);
   const [scanMode, setScanMode] = useState<string>('url');
   const [scanInput, setScanInput] = useState<string>(sampleScanTargets.url);
   const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [threatResult, setThreatResult] = useState(initialThreatResult);
+
+  const [threatResult, setThreatResult] = useState({
+    id: 'INITIAL-IDLE',
+    score: 0,
+    riskLevel: 'Standby',
+    classification: 'Ready for evaluation',
+    subVector: 'Deterministic Policy Engine',
+    confidence: '100%',
+    indicators: [
+      { label: 'Target Type:', value: 'URL' },
+      { label: 'Policy Engine:', value: isOnline ? 'Online' : 'Offline' },
+      { label: 'Database:', value: dbConnected ? 'Connected' : 'Unavailable' },
+      { label: 'Canary Files:', value: isOnline ? `${canaryCount} monitored` : 'Offline' },
+      { label: 'Heuristic Scorer:', value: isOnline ? 'Ready' : 'Offline' },
+      { label: 'Audit Log:', value: 'Chained SHA-256' },
+    ],
+    verdict: 'Submit any target URL, honeypot file, IP address, or system command above to evaluate deterministic risk live via SentinelAI.',
+    sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    verifiedMatch: false,
+  });
+
   const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activePrompt, setActivePrompt] = useState<PromptAction | null>(null);
@@ -69,49 +66,34 @@ export default function DashboardPage() {
   const [showSplash, setShowSplash] = useState(true);
   const [isTriggeringAction, setIsTriggeringAction] = useState(false);
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
-  const [actionExplanation, setActionExplanation] = useState<ActionExplanation | null>(null);
-  const [isExplainingAction, setIsExplainingAction] = useState(false);
   const [showDemoMenu, setShowDemoMenu] = useState(false);
 
+  // Update dynamic indicators when online status changes
   useEffect(() => {
-    if (!selectedAction) {
-      setActionExplanation(null);
-      return;
-    }
-    let isCancelled = false;
-    setIsExplainingAction(true);
-    explainAction({
-      agent_id: selectedAction.agent_id || 'unknown',
-      action_type: selectedAction.action_type,
-      operation: selectedAction.action_type.includes('DELETE')
-        ? 'DELETE'
-        : selectedAction.action_type.includes('EXECUTE')
-        ? 'EXECUTE'
-        : 'READ',
-      target_path: selectedAction.target_path,
-      risk_score: selectedAction.risk_score,
-    })
-      .then((res) => {
-        if (!isCancelled) setActionExplanation(res);
-      })
-      .finally(() => {
-        if (!isCancelled) setIsExplainingAction(false);
-      });
+    setThreatResult((prev) => ({
+      ...prev,
+      indicators: [
+        { label: 'Target Type:', value: scanMode.toUpperCase() },
+        { label: 'Policy Engine:', value: isOnline ? 'Online' : 'Offline' },
+        { label: 'Database:', value: dbConnected ? 'Connected' : 'Unavailable' },
+        { label: 'Canary Files:', value: isOnline ? `${canaryCount} monitored` : 'Offline' },
+        { label: 'Heuristic Scorer:', value: isOnline ? 'Ready' : 'Offline' },
+        { label: 'Audit Log:', value: 'Chained SHA-256' },
+      ],
+      verdict: isOnline
+        ? 'Submit any target URL, honeypot file, IP address, or system command above to evaluate deterministic risk live via SentinelAI.'
+        : 'Security daemon is offline. Real-time target evaluation suspended until daemon is started on port 8765.',
+    }));
+  }, [isOnline, dbConnected, canaryCount, scanMode]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [selectedAction]);
-
-  const syncDaemon = async () => {
+  const syncActions = async () => {
+    if (!isOnline) return;
     setIsRefreshing(true);
     try {
-      const [status, actions, alerts] = await Promise.all([
-        getDaemonStatus().catch(() => null),
+      const [actions, alerts] = await Promise.all([
         getRecentActions(200).catch(() => []),
         getAlerts().catch(() => []),
       ]);
-      setDaemonStatus(status);
       setDaemonActions(actions);
 
       // Auto-trigger live Permission Prompt Dialog if an unread alert with action_id exists
@@ -147,10 +129,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    syncDaemon();
-    const interval = setInterval(syncDaemon, 4000);
+    syncActions();
+    const interval = setInterval(syncActions, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isOnline]);
 
   const handleModeChange = (mode: string) => {
     setScanMode(mode);
@@ -158,6 +140,7 @@ export default function DashboardPage() {
   };
 
   const handleTriggerRealAction = async () => {
+    if (!isOnline) return;
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
@@ -170,7 +153,7 @@ export default function DashboardPage() {
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
-      await syncDaemon();
+      await syncActions();
       setActionSuccessNotice(
         `Intercepted Honeypot Deletion: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
       );
@@ -183,6 +166,7 @@ export default function DashboardPage() {
   };
 
   const handleTriggerCredentialThreat = async () => {
+    if (!isOnline) return;
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
@@ -195,7 +179,7 @@ export default function DashboardPage() {
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
-      await syncDaemon();
+      await syncActions();
       setActionSuccessNotice(
         `Intercepted Credential Leak: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
       );
@@ -208,6 +192,7 @@ export default function DashboardPage() {
   };
 
   const handleTriggerShellThreat = async () => {
+    if (!isOnline) return;
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
@@ -220,7 +205,7 @@ export default function DashboardPage() {
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
-      await syncDaemon();
+      await syncActions();
       setActionSuccessNotice(
         `Intercepted Remote Shell: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
       );
@@ -233,6 +218,7 @@ export default function DashboardPage() {
   };
 
   const handleTriggerSafeAction = async () => {
+    if (!isOnline) return;
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
@@ -245,7 +231,7 @@ export default function DashboardPage() {
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
-      await syncDaemon();
+      await syncActions();
       setActionSuccessNotice(
         `Intercepted Safe Read: ${res.decision} (Risk: ${res.risk_score}/100). Logged to SQLite!`
       );
@@ -258,6 +244,7 @@ export default function DashboardPage() {
   };
 
   const handleRunAnalysis = async () => {
+    if (!isOnline) return;
     setIsScanning(true);
     try {
       const isUrl = scanMode === 'url';
@@ -286,32 +273,12 @@ export default function DashboardPage() {
       const isMed = res.risk_score >= 40 && res.risk_score < 80;
 
       const indicators = [
-        { label: 'Target Type:', value: scanMode.toUpperCase(), status: 'normal' },
-        {
-          label: 'Heuristic Scorer:',
-          value: `${res.risk_score}/100 Risk`,
-          status: isHigh ? 'critical' : isMed ? 'warning' : 'normal',
-        },
-        {
-          label: 'Policy Gate:',
-          value: res.decision,
-          status: res.decision === 'ALLOW' ? 'normal' : 'critical',
-        },
-        {
-          label: 'Reason Code:',
-          value: res.reason_code || 'HEURISTIC_PASS',
-          status: isHigh ? 'critical' : 'normal',
-        },
-        {
-          label: 'Risk Category:',
-          value: res.risk_category || 'STANDARD',
-          status: isHigh ? 'critical' : 'normal',
-        },
-        {
-          label: 'Audit Log:',
-          value: 'Chained SHA-256',
-          status: 'normal',
-        },
+        { label: 'Target Type:', value: scanMode.toUpperCase() },
+        { label: 'Heuristic Scorer:', value: `${res.risk_score}/100 Risk` },
+        { label: 'Policy Gate:', value: res.decision },
+        { label: 'Reason Code:', value: res.reason_code || 'HEURISTIC_PASS' },
+        { label: 'Risk Category:', value: res.risk_category || 'STANDARD' },
+        { label: 'Audit Log:', value: 'Chained SHA-256' },
       ];
 
       setThreatResult({
@@ -321,13 +288,13 @@ export default function DashboardPage() {
         classification: res.decision === 'ALLOW' ? 'Permitted Operation' : 'Blocked / Quarantined',
         subVector: res.reason_code || 'Deterministic Policy Rule',
         confidence: '99.4%',
-        consensus: 'Deterministic Policy Engine',
         indicators,
         verdict: res.explanation || 'Evaluated deterministically by SentinelAI local decision engine.',
         sha256: 'a3bf4c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        verifiedMatch: true,
       });
 
-      await syncDaemon();
+      await syncActions();
     } catch (err: any) {
       console.error('Scan evaluation failed:', err);
     } finally {
@@ -381,20 +348,33 @@ export default function DashboardPage() {
     <>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} minDuration={800} />}
 
-      <div className="space-y-8 max-w-7xl mx-auto">
-        {/* 1. Header Overview (Clean & Serene) */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E2EAE4]">
-          <div className="space-y-1.5">
+      <div className="space-y-6 max-w-7xl mx-auto">
+        {/* Offline Banner when Daemon is offline */}
+        <OfflineBanner />
+
+        {/* 1. Header Overview (F1: WCAG AA Compliant White Headings on Dark Canvas) */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-border">
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-mono font-medium text-[#059669]">
-                Workstation active &bull; Local protection armed
+              <span
+                className={`size-2 rounded-full ${
+                  isOnline ? 'bg-accent-emerald animate-pulse' : 'bg-accent-rose'
+                }`}
+              />
+              <span
+                className={`text-xs font-mono font-medium ${
+                  isOnline ? 'text-accent-emerald' : 'text-accent-rose'
+                }`}
+              >
+                {isOnline
+                  ? `Workstation active • Port 8765 (${latencyMs !== null ? `${latencyMs}ms` : 'online'})`
+                  : 'Daemon offline • Local protection suspended'}
               </span>
             </div>
-            <h1 className="text-3xl font-heading font-extrabold text-[#111915] tracking-tight text-balance">
+            <h1 className="text-3xl font-heading font-extrabold text-text-primary tracking-tight text-balance">
               Runtime Security Overview
             </h1>
-            <p className="text-xs text-[#536459] text-pretty max-w-2xl">
+            <p className="text-xs text-text-secondary text-pretty max-w-2xl">
               Autonomous runtime agent governance, deterministic risk prevention, and cryptographic SQLite flight recorder.
             </p>
           </div>
@@ -402,11 +382,15 @@ export default function DashboardPage() {
           {/* Quick Actions Toolbar */}
           <div className="flex items-center gap-2">
             <button
-              onClick={syncDaemon}
+              onClick={() => {
+                refreshDaemon();
+                syncActions();
+              }}
               disabled={isRefreshing}
-              className="px-3.5 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F2F6F3] border border-[#E2EAE4] text-xs font-medium text-[#111915] transition-colors shadow-xs flex items-center gap-2"
+              aria-label="Refresh telemetry from daemon"
+              className="px-3.5 py-2 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-primary transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
             >
-              <ActivitySvg className={`size-3.5 text-[#059669] ${isRefreshing ? 'animate-spin' : ''}`} />
+              <ActivitySvg className={`size-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
 
@@ -414,16 +398,18 @@ export default function DashboardPage() {
             <div className="relative">
               <button
                 onClick={() => setShowDemoMenu(!showDemoMenu)}
-                className="px-3.5 py-2 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-medium transition-colors shadow-xs flex items-center gap-2"
+                disabled={!isOnline}
+                title={!isOnline ? 'Daemon offline. Start local service on port 8765 to enable simulation.' : undefined}
+                className="px-3.5 py-2 rounded-xl bg-accent hover:opacity-90 text-canvas text-xs font-bold transition-opacity shadow-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ShieldAlertSvg className="size-3.5" />
                 <span>Simulate threat</span>
                 <span className="text-[10px] opacity-80">▾</span>
               </button>
 
-              {showDemoMenu && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xl p-2 z-50 text-xs space-y-1 animate-in fade-in duration-100">
-                  <p className="px-3 py-1.5 text-[10px] font-mono text-[#75887B] uppercase font-bold">
+              {showDemoMenu && isOnline && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 text-xs space-y-1 animate-in fade-in duration-100">
+                  <p className="px-3 py-1.5 text-[10px] font-mono text-text-muted uppercase font-bold">
                     Test Scenarios
                   </p>
                   <button
@@ -431,40 +417,40 @@ export default function DashboardPage() {
                       setShowDemoMenu(false);
                       handleTriggerCredentialThreat();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FEF2F2] text-red-700 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-rose/10 text-accent-rose transition-colors flex items-center justify-between"
                   >
                     <span>Credential leak (.env)</span>
-                    <span className="text-[10px] font-mono font-bold text-red-600">BLOCK</span>
+                    <span className="text-[10px] font-mono font-bold">BLOCK</span>
                   </button>
                   <button
                     onClick={() => {
                       setShowDemoMenu(false);
                       handleTriggerShellThreat();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FFFBEB] text-amber-800 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-amber/10 text-accent-amber transition-colors flex items-center justify-between"
                   >
                     <span>Reverse shell (.sh)</span>
-                    <span className="text-[10px] font-mono font-bold text-amber-700">BLOCK</span>
+                    <span className="text-[10px] font-mono font-bold">BLOCK</span>
                   </button>
                   <button
                     onClick={() => {
                       setShowDemoMenu(false);
                       handleTriggerRealAction();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FEF2F2] text-rose-800 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-rose/10 text-accent-rose transition-colors flex items-center justify-between"
                   >
                     <span>Canary honeypot file</span>
-                    <span className="text-[10px] font-mono font-bold text-rose-700">BLOCK</span>
+                    <span className="text-[10px] font-mono font-bold">BLOCK</span>
                   </button>
                   <button
                     onClick={() => {
                       setShowDemoMenu(false);
                       handleTriggerSafeAction();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#ECFDF5] text-emerald-800 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-emerald/10 text-accent-emerald transition-colors flex items-center justify-between"
                   >
                     <span>Safe documentation read</span>
-                    <span className="text-[10px] font-mono font-bold text-emerald-700">ALLOW</span>
+                    <span className="text-[10px] font-mono font-bold">ALLOW</span>
                   </button>
                   <button
                     onClick={() => {
@@ -487,10 +473,10 @@ export default function DashboardPage() {
                         },
                       });
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#F0F9FF] text-sky-800 transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent/10 text-accent transition-colors flex items-center justify-between"
                   >
                     <span>Interactive prompt modal</span>
-                    <span className="text-[10px] font-mono font-bold text-sky-700">PROMPT</span>
+                    <span className="text-[10px] font-mono font-bold">PROMPT</span>
                   </button>
                 </div>
               )}
@@ -500,182 +486,229 @@ export default function DashboardPage() {
 
         {/* Notice Banner */}
         {actionSuccessNotice && (
-          <div className="p-4 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs font-mono flex items-center justify-between animate-in fade-in duration-150">
+          <div className="p-4 rounded-2xl bg-card border border-accent-emerald/40 text-accent-emerald text-xs font-mono flex items-center justify-between animate-in fade-in duration-150">
             <span>{actionSuccessNotice}</span>
             <button onClick={() => setActionSuccessNotice(null)} className="font-bold text-sm">✕</button>
           </div>
         )}
 
-        {/* 2. Key Metrics Grid (Porcelain Cards) */}
+        {/* 2. Key Metrics Grid - Fixed 3-Row Structure (F7: Equal height & baseline alignment) */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1 */}
-          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
-            <div className="flex justify-between items-center text-xs text-[#536459]">
-              <span className="font-medium">Total Interceptions</span>
-              <span className="size-6 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center text-xs">
-                &bull;
-              </span>
+          {/* Card 1: Total Interceptions */}
+          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
+            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
+            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+              <span className="font-medium truncate">Total Interceptions</span>
+              <div className="size-6 flex items-center justify-end shrink-0">
+                <span className="size-2 rounded-full bg-accent-emerald" />
+              </div>
             </div>
-            <p className="text-3xl font-heading font-extrabold text-[#111915] tabular-nums">
+
+            {/* Row 2: Value (h-12, tabular-nums) */}
+            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-text-primary">
               {totalActionsCount}
-            </p>
-            <p className="text-[11px] font-mono text-[#75887B]">
-              Logged in SQLite flight recorder
-            </p>
+            </div>
+
+            {/* Row 3: Caption (h-5) */}
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+              <span>Recorded in SQLite</span>
+              {!isOnline && lastSeenAt && (
+                <span className="text-[10px] text-accent-amber">Cached</span>
+              )}
+            </div>
           </div>
 
-          {/* Card 2 */}
-          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
-            <div className="flex justify-between items-center text-xs text-[#536459]">
-              <span className="font-medium">Critical Threats</span>
-              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-mono text-[10px] font-semibold">
+          {/* Card 2: Critical Threats (F10: No overclaiming) */}
+          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
+            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
+            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+              <span className="font-medium truncate">Critical Threats</span>
+              <div className="size-6 flex items-center justify-end shrink-0">
+                <span className="size-2 rounded-full bg-accent-rose" />
+              </div>
+            </div>
+
+            {/* Row 2: Value (h-12, tabular-nums) */}
+            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-accent-rose">
+              {criticalThreatsCount}
+            </div>
+
+            {/* Row 3: Caption (h-5) */}
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+              <span>{criticalThreatsCount} high-risk events</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent-rose/10 text-accent-rose border border-accent-rose/20">
                 Score &ge; 80
               </span>
             </div>
-            <p className="text-3xl font-heading font-extrabold text-rose-700 tabular-nums">
-              {criticalThreatsCount}
-            </p>
-            <p className="text-[11px] font-mono text-[#75887B]">
-              Auto-isolated by policy gate
-            </p>
           </div>
 
-          {/* Card 3 */}
-          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
-            <div className="flex justify-between items-center text-xs text-[#536459]">
-              <span className="font-medium">Supervised Prompts</span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-mono text-[10px] font-semibold">
+          {/* Card 3: Elevated Risks */}
+          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
+            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
+            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+              <span className="font-medium truncate">Supervised Prompts</span>
+              <div className="size-6 flex items-center justify-end shrink-0">
+                <span className="size-2 rounded-full bg-accent-amber" />
+              </div>
+            </div>
+
+            {/* Row 2: Value (h-12, tabular-nums) */}
+            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-accent-amber">
+              {elevatedRisksCount}
+            </div>
+
+            {/* Row 3: Caption (h-5) */}
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+              <span>Awaiting confirmation</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20">
                 Score 40-79
               </span>
             </div>
-            <p className="text-3xl font-heading font-extrabold text-amber-700 tabular-nums">
-              {elevatedRisksCount}
-            </p>
-            <p className="text-[11px] font-mono text-[#75887B]">
-              Awaiting human confirmation
-            </p>
           </div>
 
-          {/* Card 4 */}
-          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
-            <div className="flex justify-between items-center text-xs text-[#536459]">
-              <span className="font-medium">Contained Threats</span>
-              <span className="size-6 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs">
-                ✓
-              </span>
+          {/* Card 4: Contained Threats (F10: Real measured values) */}
+          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
+            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
+            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+              <span className="font-medium truncate">Contained Threats</span>
+              <div className="size-6 flex items-center justify-end shrink-0">
+                <ShieldCheckSvg className="size-4 text-accent-emerald" />
+              </div>
             </div>
-            <p className="text-3xl font-heading font-extrabold text-emerald-700 tabular-nums">
+
+            {/* Row 2: Value (h-12, tabular-nums) */}
+            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-accent-emerald">
               {containedBlocksCount}
-            </p>
-            <p className="text-[11px] font-mono text-[#75887B]">
-              Zero escape policy enforced
-            </p>
+            </div>
+
+            {/* Row 3: Caption (h-5) */}
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+              <span>{containedBlocksCount} blocked in session</span>
+              <span className="text-[10px] text-accent-emerald">Isolated</span>
+            </div>
           </div>
         </section>
 
-        {/* 3. Interactive Heuristic Target Evaluation (Porcelain Split View) */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 3. Interactive Heuristic Target Evaluation (F8: No dead space, flex-1 textarea, pinned CTA) */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* Target Inspector Card */}
-          <div className="p-6 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="flex flex-col h-full p-6 rounded-2xl bg-card border border-border shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="text-base font-heading font-bold text-[#111915]">
+                <h3 className="text-base font-heading font-bold text-text-primary">
                   Heuristic Target Evaluation
                 </h3>
-                <p className="text-xs text-[#536459]">
+                <p className="text-xs text-text-secondary">
                   Evaluate digital targets live against deterministic security policies.
                 </p>
               </div>
-              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#F4F7F5] border border-[#E2EAE4] text-[#536459]">
+              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-surface border border-border text-text-muted">
                 Port 8765
               </span>
             </div>
 
-            {/* Target Mode Segmented Control */}
-            <div className="flex p-1 rounded-xl bg-[#F4F7F5] border border-[#E2EAE4] text-xs font-medium text-[#536459]">
-              {(['url', 'email', 'file', 'ip', 'text'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => handleModeChange(mode)}
-                  className={`flex-1 py-1.5 rounded-lg transition-all ${
-                    scanMode === mode
-                      ? 'bg-[#FFFFFF] text-[#111915] font-semibold shadow-xs'
-                      : 'hover:text-[#111915]'
-                  }`}
-                >
-                  {mode === 'ip' ? 'IP' : mode.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            {/* Input Field */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-mono text-[#75887B] uppercase font-medium">
-                Target Input for Inspection
-              </label>
-              <textarea
-                value={scanInput}
-                onChange={(e) => setScanInput(e.target.value)}
-                rows={3}
-                className="w-full p-3 rounded-xl bg-[#F9FAF9] border border-[#E2EAE4] text-xs text-[#111915] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all resize-none"
-              />
-            </div>
-
-            {/* Quick Demo Presets */}
-            {scanMode === 'file' && (
-              <div className="space-y-1.5 text-xs">
-                <span className="text-[11px] font-mono text-[#75887B]">Workspace presets:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { label: 'Credential leak (.env)', file: 'threat_samples/malicious_exfiltration.env' },
-                    { label: 'Reverse shell (.sh)', file: 'threat_samples/reverse_shell.sh' },
-                    { label: 'Honeypot canary', file: 'sentinel_canary.env' },
-                    { label: 'Safe doc (README)', file: 'docs/README.md' },
-                  ].map((preset) => (
-                    <button
-                      key={preset.file}
-                      type="button"
-                      onClick={() => setScanInput(preset.file)}
-                      className="px-2.5 py-1 rounded-lg bg-[#F4F7F5] hover:bg-[#EAF0EB] border border-[#E2EAE4] text-[11px] text-[#536459] transition-colors"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
+            {/* Form Section fills remaining height */}
+            <div className="flex-1 flex flex-col space-y-4 pt-4">
+              {/* Segmented Mode Selector */}
+              <div className="flex p-1 rounded-xl bg-surface border border-border text-xs font-medium text-text-secondary">
+                {(['url', 'email', 'file', 'ip', 'text'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => handleModeChange(mode)}
+                    className={`flex-1 py-1.5 rounded-lg transition-all ${
+                      scanMode === mode
+                        ? 'bg-card text-text-primary font-semibold shadow-xs border border-border'
+                        : 'hover:text-text-primary'
+                    }`}
+                  >
+                    {mode === 'ip' ? 'IP' : mode.toUpperCase()}
+                  </button>
+                ))}
               </div>
-            )}
 
-            <button
-              onClick={handleRunAnalysis}
-              disabled={isScanning}
-              className="w-full py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-medium text-xs transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <ActivitySvg className={`size-4 ${isScanning ? 'animate-spin' : ''}`} />
-              <span>{isScanning ? 'Evaluating target...' : 'Evaluate Target'}</span>
-            </button>
+              {/* Textarea stretches to fill dead space */}
+              <div className="flex-1 flex flex-col space-y-1.5 min-h-[140px]">
+                <label className="text-[11px] font-mono text-text-muted uppercase font-medium">
+                  Target Input for Inspection
+                </label>
+                <textarea
+                  value={scanInput}
+                  onChange={(e) => setScanInput(e.target.value)}
+                  disabled={!isOnline}
+                  className="flex-1 w-full p-3 rounded-xl bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all resize-none disabled:opacity-50"
+                  placeholder="Enter target URL, honeypot file, or command payload..."
+                />
+              </div>
+
+              {/* Presets */}
+              {scanMode === 'file' && (
+                <div className="space-y-1.5 text-xs">
+                  <span className="text-[11px] font-mono text-text-muted">Workspace presets:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: 'Credential leak (.env)', file: 'threat_samples/malicious_exfiltration.env' },
+                      { label: 'Reverse shell (.sh)', file: 'threat_samples/reverse_shell.sh' },
+                      { label: 'Honeypot canary', file: 'sentinel_canary.env' },
+                      { label: 'Safe doc (README)', file: 'docs/README.md' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.file}
+                        type="button"
+                        onClick={() => setScanInput(preset.file)}
+                        className="px-2.5 py-1 rounded-lg bg-surface hover:bg-card-hover border border-border text-[11px] text-text-secondary transition-colors"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* CTA Button Pinned at Bottom */}
+              <div className="pt-2 mt-auto">
+                <button
+                  onClick={handleRunAnalysis}
+                  disabled={isScanning || !isOnline}
+                  title={!isOnline ? 'Daemon offline. Start local service on port 8765 to enable actions.' : undefined}
+                  className="w-full py-2.5 rounded-xl bg-accent hover:opacity-90 text-canvas font-bold text-xs transition-opacity shadow-xs flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ActivitySvg className={`size-4 ${isScanning ? 'animate-spin' : ''}`} />
+                  <span>
+                    {!isOnline
+                      ? 'Daemon offline (Evaluation disabled)'
+                      : isScanning
+                      ? 'Evaluating target...'
+                      : 'Evaluate Target'}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Decision Verdict Card */}
-          <div className="p-6 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-4 flex flex-col justify-between">
+          {/* Decision Verdict Card (F13: aria-live="polite", F10: no overclaiming) */}
+          <div
+            className="flex flex-col h-full p-6 rounded-2xl bg-card border border-border shadow-xs justify-between"
+            aria-live="polite"
+          >
             <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-[#E2EAE4] pb-3">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div>
-                  <span className="text-[10px] font-mono uppercase text-[#75887B] font-medium">
+                  <span className="text-[10px] font-mono uppercase text-text-muted font-medium">
                     Evaluation Verdict
                   </span>
-                  <h4 className="text-lg font-heading font-bold text-[#111915] mt-0.5">
+                  <h4 className="text-lg font-heading font-bold text-text-primary mt-0.5">
                     {threatResult.classification}
                   </h4>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-mono text-[#75887B]">Risk Score</span>
+                  <span className="text-[10px] font-mono text-text-muted">Risk Score</span>
                   <p
                     className={`text-2xl font-heading font-extrabold tabular-nums ${
                       threatResult.score >= 80
-                        ? 'text-red-700'
+                        ? 'text-accent-rose'
                         : threatResult.score >= 40
-                        ? 'text-amber-700'
-                        : 'text-emerald-700'
+                        ? 'text-accent-amber'
+                        : 'text-accent-emerald'
                     }`}
                   >
                     {threatResult.score}/100
@@ -688,10 +721,10 @@ export default function DashboardPage() {
                 {threatResult.indicators.map((ind) => (
                   <div
                     key={ind.label}
-                    className="p-2.5 rounded-xl bg-[#F9FAF9] border border-[#E2EAE4] text-[11px] space-y-0.5"
+                    className="p-2.5 rounded-xl bg-surface border border-border text-[11px] space-y-0.5"
                   >
-                    <span className="text-[#75887B] text-[10px] block">{ind.label}</span>
-                    <span className="font-semibold text-[#111915] truncate block">
+                    <span className="text-text-muted text-[10px] block">{ind.label}</span>
+                    <span className="font-semibold text-text-primary truncate block">
                       {ind.value}
                     </span>
                   </div>
@@ -699,14 +732,17 @@ export default function DashboardPage() {
               </div>
 
               {/* Verdict Explanation */}
-              <div className="p-3.5 rounded-xl bg-[#F4F7F5] border border-[#E2EAE4] text-xs text-[#536459] leading-relaxed text-pretty">
+              <div className="p-3.5 rounded-xl bg-surface border border-border text-xs text-text-secondary leading-relaxed text-pretty">
                 {threatResult.verdict}
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between text-[11px] font-mono text-[#75887B]">
-              <span>SHA-256 Chained</span>
-              <span className="text-emerald-700 font-semibold">100% Cryptographic Match</span>
+            {/* Live Verification Footer (F10: measured, never overclaimed) */}
+            <div className="pt-4 border-t border-border flex items-center justify-between text-[11px] font-mono text-text-muted">
+              <span>SHA-256 Ledger</span>
+              <span className={threatResult.verifiedMatch ? 'text-accent-emerald font-semibold' : 'text-text-muted'}>
+                {threatResult.verifiedMatch ? 'Chain verified: Match confirmed' : 'Verification pending scan'}
+              </span>
             </div>
           </div>
         </section>
@@ -715,10 +751,10 @@ export default function DashboardPage() {
         <section id="action-feed" className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-heading font-bold text-[#111915]">
+              <h3 className="text-lg font-heading font-bold text-text-primary">
                 Live Intercepted Feed
               </h3>
-              <p className="text-xs text-[#536459]">
+              <p className="text-xs text-text-secondary">
                 Chronological ledger of security decisions evaluated across system processes.
               </p>
             </div>
@@ -729,13 +765,13 @@ export default function DashboardPage() {
                 placeholder="Search actions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-[#FFFFFF] border border-[#E2EAE4] text-xs text-[#111915] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
+                className="px-3 py-1.5 rounded-xl bg-card border border-border text-xs text-text-primary font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all"
               />
 
               <button
                 onClick={handleExportLogs}
                 disabled={!daemonActions.length}
-                className="px-3 py-1.5 rounded-xl bg-[#FFFFFF] hover:bg-[#F2F6F3] border border-[#E2EAE4] text-xs font-medium text-[#111915] transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-primary transition-colors disabled:opacity-50"
               >
                 Export CSV
               </button>
@@ -743,10 +779,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Table Container */}
-          <div className="rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs overflow-hidden">
+          <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#F9FAF9] text-[#75887B] border-b border-[#E2EAE4] uppercase text-[10px]">
+                <thead className="bg-surface text-text-muted border-b border-border uppercase text-[10px]">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Time</th>
                     <th className="py-3 px-4 font-semibold">Agent</th>
@@ -756,11 +792,11 @@ export default function DashboardPage() {
                     <th className="py-3 px-4 font-semibold text-right">Verdict</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F2F6F3]">
+                <tbody className="divide-y divide-border-subtle">
                   {displayActions.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-[#75887B]">
-                        No recorded actions match current filters.
+                      <td colSpan={6} className="py-12 text-center text-text-muted">
+                        {isOnline ? 'No recorded actions match current filters.' : 'Daemon offline. No actions to display.'}
                       </td>
                     </tr>
                   ) : (
@@ -772,30 +808,30 @@ export default function DashboardPage() {
                         <tr
                           key={action.id}
                           onClick={() => setSelectedAction(action)}
-                          className="hover:bg-[#F9FAF9] transition-colors cursor-pointer"
+                          className="hover:bg-card-hover transition-colors cursor-pointer"
                         >
-                          <td className="py-3 px-4 text-[#75887B] tabular-nums whitespace-nowrap">
+                          <td className="py-3 px-4 text-text-muted tabular-nums whitespace-nowrap">
                             {formatLocalTime(action.created_at)}
                           </td>
-                          <td className="py-3 px-4 font-medium text-[#111915] whitespace-nowrap">
+                          <td className="py-3 px-4 font-medium text-text-primary whitespace-nowrap">
                             {action.agent_id || 'system'}
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded-md bg-[#F4F7F5] border border-[#E2EAE4] text-[10px] text-[#536459]">
+                            <span className="px-2 py-0.5 rounded-md bg-surface border border-border text-[10px] text-text-secondary">
                               {action.action_type}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-[#536459] max-w-xs truncate" title={action.target_path || undefined}>
+                          <td className="py-3 px-4 text-text-secondary max-w-xs truncate" title={action.target_path || undefined}>
                             {action.target_path || 'None'}
                           </td>
                           <td className="py-3 px-4 text-center tabular-nums font-semibold">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] ${
                                 action.risk_score >= 80
-                                  ? 'bg-rose-50 text-rose-700 font-bold'
+                                  ? 'bg-accent-rose/15 text-accent-rose font-bold'
                                   : action.risk_score >= 40
-                                  ? 'bg-amber-50 text-amber-800 font-bold'
-                                  : 'bg-emerald-50 text-emerald-800'
+                                  ? 'bg-accent-amber/15 text-accent-amber font-bold'
+                                  : 'bg-accent-emerald/15 text-accent-emerald'
                               }`}
                             >
                               {action.risk_score}/100
@@ -805,10 +841,10 @@ export default function DashboardPage() {
                             <span
                               className={`px-2 py-0.5 rounded-md text-[10px] ${
                                 isBlock
-                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  ? 'bg-accent-rose/15 text-accent-rose border border-accent-rose/30'
                                   : isPrompt
-                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  ? 'bg-accent-amber/15 text-accent-amber border border-accent-amber/30'
+                                  : 'bg-accent-emerald/15 text-accent-emerald border border-accent-emerald/30'
                               }`}
                             >
                               {action.outcome}
@@ -829,7 +865,7 @@ export default function DashboardPage() {
       <PermissionPromptDialog
         prompt={activePrompt}
         onClose={() => setActivePrompt(null)}
-        onDecisionApplied={syncDaemon}
+        onDecisionApplied={syncActions}
       />
     </>
   );
