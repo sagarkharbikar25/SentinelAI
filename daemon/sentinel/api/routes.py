@@ -130,16 +130,20 @@ async def start_session(req: StartSessionRequest, db: DBSession = Depends(get_db
 async def end_session(req: EndSessionRequest, db: DBSession = Depends(get_db)):
     """Terminates an active agent session."""
     global active_session_id
-    session = db.query(DbSessionModel).filter(DbSessionModel.id == req.session_id).first()
+    sess_id = req.session_id or active_session_id
+    if not sess_id:
+        return {"ok": False, "message": "No active session to end"}
+
+    session = db.query(DbSessionModel).filter(DbSessionModel.id == sess_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        return {"ok": False, "message": f"Session {sess_id} not found"}
 
     session.ended_at = datetime.utcnow()
     db.commit()
-    if active_session_id == req.session_id:
+    if active_session_id == sess_id:
         active_session_id = None
 
-    return {"ok": True, "session_id": req.session_id, "ended_at": session.ended_at.isoformat()}
+    return {"ok": True, "session_id": sess_id, "ended_at": session.ended_at.isoformat()}
 
 
 @router.post("/intercept", response_model=InterceptResponse)
@@ -257,22 +261,38 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
     )
 
 
+@router.get("/prompts/pending")
+async def get_pending_prompts():
+    """Returns list of pending action IDs currently awaiting human resolution."""
+    return {"pending_action_ids": list(pending_events.keys()), "count": len(pending_events)}
+
+
 @router.post("/user-response", response_model=UserResponseResult)
 async def user_response(req: UserResponseRequest, db: DBSession = Depends(get_db)):
-    """Called by Member 1's Tauri prompt dialog when user clicks Allow or Block."""
+    """Called by Member 1's Tauri prompt dialog or Postman when user clicks Allow or Block."""
+    choice = req.user_choice.upper() if req.user_choice else "ALLOW"
     action_id = req.action_id
-    choice = req.user_choice.upper()
 
-    if action_id not in pending_events:
+    # If action_id is omitted or "latest", automatically resolve the latest active prompt
+    if (not action_id or action_id == "latest") and pending_events:
+        action_id = list(pending_events.keys())[-1]
+
+    if not action_id or action_id not in pending_events:
         # Check if action exists in DB
-        action = db.query(Action).filter(Action.id == action_id).first()
-        if not action:
-            raise HTTPException(status_code=404, detail="Action not found or prompt already expired")
+        if action_id:
+            action = db.query(Action).filter(Action.id == action_id).first()
+            if action:
+                return UserResponseResult(
+                    ok=False,
+                    action_id=action_id,
+                    final_outcome="EXPIRED",
+                    message="Prompt has already expired or resolved",
+                )
         return UserResponseResult(
             ok=False,
-            action_id=action_id,
-            final_outcome="EXPIRED",
-            message="Prompt has already expired or resolved",
+            action_id=action_id or "none",
+            final_outcome="NOT_FOUND",
+            message="No active pending prompt found to resolve",
         )
 
     # Register choice and unblock waiting intercept handler

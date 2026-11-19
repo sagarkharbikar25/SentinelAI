@@ -25,8 +25,8 @@ class InterceptResponse(BaseModel):
 
 
 class UserResponseRequest(BaseModel):
-    action_id: str
-    user_choice: str = Field(description="User response: ALLOW or BLOCK")
+    action_id: Optional[str] = None
+    user_choice: str = Field(default="ALLOW", description="User response: ALLOW or BLOCK")
     remember_for_session: bool = Field(default=False)
 
 
@@ -52,7 +52,7 @@ class StartSessionResponse(BaseModel):
 
 
 class EndSessionRequest(BaseModel):
-    session_id: str
+    session_id: Optional[str] = None
 
 
 class ActionLogItem(BaseModel):

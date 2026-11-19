@@ -206,6 +206,35 @@
           }
         },
         {
+          "name": "Check Pending Prompts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data.pending_action_ids && data.pending_action_ids.length > 0) {",
+                  "    pm.collectionVariables.set('lastActionId', data.pending_action_ids[0]);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/prompts/pending",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "prompts", "pending"]
+            }
+          }
+        },
+        {
           "name": "Submit User Response (Allow / Block)",
           "event": [
             {
