@@ -16,7 +16,7 @@ import {
   Database,
   ArrowUpDown,
 } from 'lucide-react';
-import { ActionLog, getRecentActions, interceptAction } from '@/lib/daemon';
+import { ActionLog, getRecentActions, interceptAction, verifyLog, VerifyLogResult } from '@/lib/daemon';
 import { formatLocalDateTime } from '@/lib/dateUtils';
 
 export default function AuditLogsPage() {
@@ -28,6 +28,18 @@ export default function AuditLogsPage() {
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [selectedLog, setSelectedLog] = useState<ActionLog | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<VerifyLogResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerifyLog = async () => {
+    setVerifying(true);
+    try {
+      const res = await verifyLog();
+      setVerifyResult(res);
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   async function refresh() {
     setLoading(true);
@@ -140,6 +152,15 @@ export default function AuditLogsPage() {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
+            onClick={handleVerifyLog}
+            disabled={verifying}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-xs font-mono font-bold text-[#4EDEA3] transition shadow-sm disabled:opacity-50"
+          >
+            <ShieldCheck className={`w-3.5 h-3.5 ${verifying ? 'animate-spin' : ''}`} />
+            VERIFY CRYPTOGRAPHIC LOG
+          </button>
+
+          <button
             onClick={refresh}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/60 text-xs font-mono font-semibold text-[#DFE2F0] hover:border-[#93CCFF] transition shadow-sm"
           >
@@ -175,6 +196,36 @@ export default function AuditLogsPage() {
           </button>
         </div>
       </div>
+
+      {/* Cryptographic Proof Banner */}
+      {verifyResult && (
+        <div
+          className={`p-4 rounded-xl border flex items-center justify-between text-xs font-mono shadow-md ${
+            verifyResult.valid
+              ? 'bg-emerald-500/10 border-emerald-500/40 text-[#4EDEA3]'
+              : 'bg-red-500/10 border-red-500/40 text-[#FF5449]'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            {verifyResult.valid ? (
+              <ShieldCheck className="w-5 h-5 shrink-0 text-[#4EDEA3]" />
+            ) : (
+              <ShieldAlert className="w-5 h-5 shrink-0 text-[#FF5449]" />
+            )}
+            <div>
+              <p className="font-bold uppercase">
+                {verifyResult.valid ? 'CRYPTOGRAPHIC INTEGRITY: VERIFIED' : 'TAMPER DETECTED: CORRUPTION FOUND'}
+              </p>
+              <p className="text-[11px] opacity-90 mt-0.5">{verifyResult.message}</p>
+            </div>
+          </div>
+          {verifyResult.head_hash && (
+            <span className="text-[10px] opacity-75 font-mono">
+              Head Hash: {verifyResult.head_hash.slice(0, 16)}...
+            </span>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/40 text-[#FFB4AB] text-xs font-mono flex items-center gap-2">
