@@ -156,6 +156,52 @@ export function verifyLog() {
   }));
 }
 
+export type CoverageReport = {
+  agent_name: string;
+  adapter: string;
+  status: string;
+  can_block: boolean;
+  notes: string;
+  mode: string;
+  last_event: string | null;
+  unmonitored: string;
+};
+
+export function getAdapterCoverage(): Promise<CoverageReport[]> {
+  return Promise.resolve([
+    {
+      agent_name: 'Claude Code',
+      adapter: 'Pre-Tool Hook (Native Subprocess Intercept)',
+      status: 'Active Guard',
+      can_block: true,
+      notes: 'Full holdable intervention before OS file effects',
+      mode: 'Ask (Holdable)',
+      last_event: new Date().toISOString(),
+      unmonitored: 'External network calls made outside MCP tools',
+    },
+    {
+      agent_name: 'Cursor',
+      adapter: 'Shell Shim / CLI Interception Layer',
+      status: 'Active Guard',
+      can_block: true,
+      notes: 'Intercepts rm, mv, cp, chmod before OS execution',
+      mode: 'Ask / Intercept',
+      last_event: new Date().toISOString(),
+      unmonitored: 'Direct editor GUI file deletes if terminal bypassed',
+    },
+    {
+      agent_name: 'Antigravity',
+      adapter: 'Process Attribution + Deep Protect',
+      status: 'Monitoring',
+      can_block: false,
+      notes: 'Post-action deletion recovery via content-addressed vault',
+      mode: 'Passive Archive',
+      last_event: null,
+      unmonitored: 'File read access without ETW providers active',
+    },
+  ]);
+}
+
 export type ActionExplanation = {
   provider: string;
   model_name: string;
