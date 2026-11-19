@@ -32,13 +32,13 @@ depends_on: []
 ## Phases
 
 ### Phase 1: Live Daemon Client Integration (`lib/daemon.ts`)
-* [ ] Audit and harden `frontend/src/lib/daemon.ts`:
+* [x] Audit and harden `frontend/src/lib/daemon.ts`:
   - Target `http://127.0.0.1:8765` directly.
   - Implement `getStatus()`, `getPendingPrompts()`, `respondToPrompt()`, `getActions()`, `getAlerts()`, `verifyLog()`.
   - Remove all broken or hardcoded mock data.
 
 ### Phase 2: Consolidated 4-Screen Navigation Shell
-* [ ] Refactor `frontend/src/components/layout/Sidebar.tsx`:
+* [x] Refactor `frontend/src/components/layout/Sidebar.tsx`:
   - Exactly 4 primary sidebar links:
     1. 🏠 **Home** (`/`)
     2. 🗄️ **Backup Vault** (`/vault`)
@@ -48,29 +48,29 @@ depends_on: []
   - Update `Navbar.tsx` with live daemon heartbeat indicator.
 
 ### Phase 3: Interactive Ask Permission Dialog with Live Countdown
-* [ ] Update `frontend/src/components/PermissionPromptDialog.tsx`:
+* [x] Update `frontend/src/components/PermissionPromptDialog.tsx`:
   - Auto-fetch active prompts from `/daemon/prompts/pending`.
   - Animated 30-second countdown bar with auto-close and auto-deny trigger.
   - Fail-closed focus: Default keyboard focus on **Deny** (`Esc` or `Enter`).
   - Send response via `POST /daemon/user-response`.
 
 ### Phase 4: Vault & Log/Audit Screens Implementation
-* [ ] Create `frontend/src/app/vault/page.tsx`:
+* [x] Create `frontend/src/app/vault/page.tsx`:
   - List vaulted files, timestamps, and deduplicated SHA-256 hashes.
   - "Restore" action triggering safe recovery.
-* [ ] Update `frontend/src/app/audit-logs/page.tsx`:
+* [x] Update `frontend/src/app/audit-logs/page.tsx`:
   - Events table, decisions ledger, and security alerts.
   - Interactive "Verify Log" button rendering live cryptographic proof badge (`Valid` vs `Tamper Detected`).
-* [ ] Create `frontend/src/app/lab/page.tsx`:
+* [x] Create `frontend/src/app/lab/page.tsx`:
   - Guided wizard for safe test lab folder.
   - T1–T15 testing matrix with pass/fail badges.
-* [ ] Create `frontend/src/app/settings/page.tsx`:
+* [x] Create `frontend/src/app/settings/page.tsx`:
   - Mode selector (Ask, Observe, Strict), Ask timeout slider, and protection map.
 
 ### Phase 5: Verification & Zero-Error Compilation
-* [ ] Verify Next.js TypeScript build:
+* [x] Verify Next.js TypeScript build:
   ```powershell
   cd frontend
   npm run build
   ```
-* [ ] Verify full repository tests across all members remain 100% green.
+* [x] Verify full repository tests across all members remain 100% green.
