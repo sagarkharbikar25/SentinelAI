@@ -62,7 +62,21 @@ export default function PermissionPromptDialog({
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        e.preventDefault();
+        handleDecision('BLOCK'); // Default fail-closed on Enter / Esc
+      } else if (e.key.toLowerCase() === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleDecision('ALLOW');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [prompt]);
 
   if (!prompt) return null;
