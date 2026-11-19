@@ -51,7 +51,9 @@ class DecisionEngine:
         is_git_tracked: Optional[bool] = None,
     ) -> Decision:
         # Step 1: Manifest Check
-        manifest_res = self.manifest_checker.check(target_path, operation)
+        manifest_res = self.manifest_checker.check(
+            target_path, operation, granted_paths=granted_paths
+        )
         if manifest_res == ManifestCheckResult.OUT_OF_SCOPE:
             return Decision(
                 outcome=DecisionOutcome.BLOCK,

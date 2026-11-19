@@ -37,6 +37,8 @@ venv/
 # Database & Storage
 *.sqlite
 *.db
+.sentinelai/
+.sentinelai_dev/
 
 # IDE & OS Files
 .DS_Store

@@ -1,22 +1,17 @@
 {
   "info": {
-    "name": "SentinelAI Semester 5 API Collection",
-    "description": "Complete Postman collection for SentinelAI Backend API (NestJS Port 3001) - Auth, Users, Agents, Tools, and Policies.",
+    "name": "SentinelAI API Collection",
+    "description": "Comprehensive Postman collection for SentinelAI Security Suite: Python Security Daemon (Port 8765) and Portal Management API (Port 3001).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{authToken}}",
-        "type": "string"
-      }
-    ]
   },
   "variable": [
     {
-      "key": "baseUrl",
+      "key": "daemonUrl",
+      "value": "http://127.0.0.1:8765",
+      "type": "string"
+    },
+    {
+      "key": "portalUrl",
       "value": "http://localhost:3001",
       "type": "string"
     },
@@ -24,14 +19,382 @@
       "key": "authToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "activeSessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lastActionId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Authentication",
+      "name": "1. SentinelAI Security Daemon (Port 8765)",
       "item": [
         {
-          "name": "1. Admin Login (Get Bearer Token)",
+          "name": "Daemon Health & Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Daemon is running', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data.running).to.be.true;",
+                  "    pm.expect(data.version).to.eql('0.1.0');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/status",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "status"]
+            }
+          }
+        },
+        {
+          "name": "Start Agent Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('Session started with valid session_id', function () {",
+                  "    pm.expect(data.session_id).to.be.a('string');",
+                  "    pm.collectionVariables.set('activeSessionId', data.session_id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"claude-code\",\n  \"task_description\": \"Implement auth middleware and audit fixes\",\n  \"granted_paths\": [\"d:/GitHub/SentinelAI/**\", \"~/project/**\"]\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/session/start",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "session", "start"]
+            }
+          }
+        },
+        {
+          "name": "Intercept Action - Safe Allow",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('Decision is ALLOW', function () {",
+                  "    pm.expect(data.decision).to.eql('ALLOW');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{activeSessionId}}\",\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_READ\",\n  \"operation\": \"READ\",\n  \"target_path\": \"d:/GitHub/SentinelAI/README.md\",\n  \"command\": \"cat README.md\"\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/intercept",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "intercept"]
+            }
+          }
+        },
+        {
+          "name": "Intercept Action - Hard Policy Block",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('Decision is BLOCK', function () {",
+                  "    pm.expect(data.decision).to.eql('BLOCK');",
+                  "    pm.expect(data.reason_code).to.be.oneOf(['POLICY_DENY', 'MANIFEST_DENY']);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{activeSessionId}}\",\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_DELETE\",\n  \"operation\": \"DELETE\",\n  \"target_path\": \"~/.ssh/id_rsa\",\n  \"command\": \"rm ~/.ssh/id_rsa\"\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/intercept",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "intercept"]
+            }
+          }
+        },
+        {
+          "name": "Intercept Action - User Prompt Trigger",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.collectionVariables.set('lastActionId', data.action_id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{activeSessionId}}\",\n  \"agent_id\": \"claude-code\",\n  \"agent_type\": \"SHELL\",\n  \"action_type\": \"FILE_DELETE\",\n  \"operation\": \"DELETE\",\n  \"target_path\": \"d:/GitHub/SentinelAI/scratch_untracked.tmp\",\n  \"command\": \"rm scratch_untracked.tmp\"\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/intercept",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "intercept"]
+            }
+          }
+        },
+        {
+          "name": "Submit User Response (Allow / Block)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response is valid', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action_id\": \"{{lastActionId}}\",\n  \"user_choice\": \"ALLOW\"\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/user-response",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "user-response"]
+            }
+          }
+        },
+        {
+          "name": "List Audit Actions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Actions list returned', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/actions?limit=20&offset=0",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "actions"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Security Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Alerts array returned', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/alerts?limit=10",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "alerts"],
+              "query": [
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Daemon Policies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/policies",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "policies"]
+            }
+          }
+        },
+        {
+          "name": "Create Daemon Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"protect-credentials\",\n  \"scope\": \"**/*credential*\",\n  \"rule\": \"Require manual confirmation for credential file operations\"\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/policies",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "policies"]
+            }
+          }
+        },
+        {
+          "name": "List Registered Tools & Manifests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/tools",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "tools"]
+            }
+          }
+        },
+        {
+          "name": "End Agent Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('Session ended successfully', function () {",
+                  "    pm.expect(data.ok).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{activeSessionId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{daemonUrl}}/daemon/session/end",
+              "host": ["{{daemonUrl}}"],
+              "path": ["daemon", "session", "end"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. SentinelAI Management Portal (Port 3001)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{authToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Admin Login",
           "event": [
             {
               "listen": "test",
@@ -40,8 +403,6 @@
                   "var jsonData = pm.response.json();",
                   "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
                   "    pm.collectionVariables.set('authToken', jsonData.data.accessToken);",
-                  "    pm.environment.set('authToken', jsonData.data.accessToken);",
-                  "    console.log('authToken automatically saved to collection variables!');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -58,14 +419,14 @@
               "raw": "{\n  \"email\": \"admin@sentinelai.io\",\n  \"password\": \"AdminPass123!\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/auth/login",
+              "host": ["{{portalUrl}}"],
               "path": ["auth", "login"]
             }
           }
         },
         {
-          "name": "2. Register New User",
+          "name": "Register New User",
           "request": {
             "method": "POST",
             "header": [
@@ -76,35 +437,30 @@
               "raw": "{\n  \"email\": \"analyst@sentinelai.io\",\n  \"name\": \"Security Analyst\",\n  \"password\": \"AnalystPass123!\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/auth/register",
+              "host": ["{{portalUrl}}"],
               "path": ["auth", "register"]
             }
           }
         },
         {
-          "name": "3. Get Profile (/auth/me)",
+          "name": "Get Profile (/auth/me)",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/auth/me",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/auth/me",
+              "host": ["{{portalUrl}}"],
               "path": ["auth", "me"]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Agents Management",
-      "item": [
+        },
         {
           "name": "List Agents",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/agents",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/agents",
+              "host": ["{{portalUrl}}"],
               "path": ["agents"]
             }
           }
@@ -121,40 +477,30 @@
               "raw": "{\n  \"name\": \"Coding Security Assistant\",\n  \"description\": \"Scans source code for vulnerabilities\",\n  \"type\": \"CODING\",\n  \"riskLevel\": \"HIGH\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/agents",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/agents",
+              "host": ["{{portalUrl}}"],
               "path": ["agents"]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Tools Registry",
-      "item": [
+        },
         {
           "name": "List Registered Tools",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/tools",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/tools",
+              "host": ["{{portalUrl}}"],
               "path": ["tools"]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Policies Governance",
-      "item": [
+        },
         {
           "name": "List Governance Policies",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/policies",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{portalUrl}}/policies",
+              "host": ["{{portalUrl}}"],
               "path": ["policies"]
             }
           }

@@ -1,21 +1,30 @@
-from fastapi.testclient import TestClient
+import asyncio
+import pytest
+from httpx import ASGITransport, AsyncClient
 
+from sentinel.api import routes
 from sentinel.main import app
 
-client = TestClient(app)
+
+@pytest.fixture
+async def client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c
 
 
-def test_daemon_status():
-    response = client.get("/daemon/status")
+@pytest.mark.asyncio
+async def test_daemon_status(client: AsyncClient):
+    response = await client.get("/daemon/status")
     assert response.status_code == 200
     data = response.json()
     assert data["running"] is True
     assert data["version"] == "0.1.0"
 
 
-def test_session_lifecycle():
+@pytest.mark.asyncio
+async def test_session_lifecycle(client: AsyncClient):
     # 1. Start Session
-    start_resp = client.post(
+    start_resp = await client.post(
         "/daemon/session/start",
         json={
             "agent_id": "claude-code",
@@ -29,19 +38,20 @@ def test_session_lifecycle():
     assert session_id is not None
 
     # Check status reflects active session
-    status_resp = client.get("/daemon/status")
+    status_resp = await client.get("/daemon/status")
     assert status_resp.json()["active_session_id"] == session_id
 
     # 2. End Session
-    end_resp = client.post("/daemon/session/end", json={"session_id": session_id})
+    end_resp = await client.post("/daemon/session/end", json={"session_id": session_id})
     assert end_resp.status_code == 200
 
-    status_resp_after = client.get("/daemon/status")
+    status_resp_after = await client.get("/daemon/status")
     assert status_resp_after.json()["active_session_id"] is None
 
 
-def test_intercept_policy_deny():
-    resp = client.post(
+@pytest.mark.asyncio
+async def test_intercept_policy_deny(client: AsyncClient):
+    resp = await client.post(
         "/daemon/intercept",
         json={
             "agent_id": "claude-code",
@@ -58,49 +68,57 @@ def test_intercept_policy_deny():
     assert data["reason_code"] in ["MANIFEST_DENY", "POLICY_DENY"]
 
 
-def test_intercept_and_user_response():
-    # Test async prompt and response resolution
-    # In one thread/task, call intercept on untracked file
-    # Then immediately submit user-response ALLOW
-    import threading
-    import time
-
-    action_id_holder = {}
-
-    def simulate_user_approval():
-        # Poll actions endpoint until prompt is created
-        for _ in range(30):
-            time.sleep(0.1)
-            actions_resp = client.get("/daemon/actions?limit=5")
-            if actions_resp.status_code == 200:
-                items = actions_resp.json()
-                if items:
-                    target_id = items[0]["id"]
-                    # Submit approval
-                    resp = client.post(
-                        "/daemon/user-response",
-                        json={"action_id": target_id, "user_choice": "ALLOW"},
-                    )
-                    if resp.status_code == 200 and resp.json().get("ok"):
-                        action_id_holder["id"] = target_id
-                        break
-
-    thread = threading.Thread(target=simulate_user_approval)
-    thread.start()
-
-    resp = client.post(
-        "/daemon/intercept",
+@pytest.mark.asyncio
+async def test_intercept_and_user_response(client: AsyncClient):
+    # Start an active session granting the test scope
+    start_resp = await client.post(
+        "/daemon/session/start",
         json={
             "agent_id": "claude-code",
-            "agent_type": "SHELL",
-            "action_type": "FILE_DELETE",
-            "operation": "DELETE",
-            "target_path": "d:/test_scratch_untracked.txt",
-            "command": "rm test_scratch_untracked.txt",
+            "task_description": "Interactive prompt test",
+            "granted_paths": ["d:/**", "~/project/**"],
         },
     )
-    thread.join()
+    assert start_resp.status_code == 200
+    session_id = start_resp.json()["session_id"]
 
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["decision"] in ["ALLOW", "BLOCK"]
+    try:
+        intercept_task = asyncio.create_task(
+            client.post(
+                "/daemon/intercept",
+                json={
+                    "session_id": session_id,
+                    "agent_id": "claude-code",
+                    "agent_type": "SHELL",
+                    "action_type": "FILE_DELETE",
+                    "operation": "DELETE",
+                    "target_path": "d:/test_scratch_untracked.txt",
+                    "command": "rm test_scratch_untracked.txt",
+                },
+            )
+        )
+
+        # Wait for prompt to be registered in pending_events
+        for _ in range(40):
+            await asyncio.sleep(0.05)
+            if routes.pending_events:
+                break
+
+        assert len(routes.pending_events) > 0
+        action_id = list(routes.pending_events.keys())[0]
+
+        # Submit user approval
+        resp_approval = await client.post(
+            "/daemon/user-response",
+            json={"action_id": action_id, "user_choice": "ALLOW"},
+        )
+        assert resp_approval.status_code == 200
+        assert resp_approval.json().get("ok") is True
+
+        # Intercept should resolve immediately
+        resp = await intercept_task
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["decision"] == "ALLOW"
+    finally:
+        await client.post("/daemon/session/end", json={"session_id": session_id})

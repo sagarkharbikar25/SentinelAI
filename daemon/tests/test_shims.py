@@ -9,11 +9,15 @@ sys.path.insert(0, str(SHIMS_DIR))
 import chmod  # noqa: E402
 import cp  # noqa: E402
 import git_clean  # noqa: E402
+import mv  # noqa: E402
+import rm  # noqa: E402
 
 
 @pytest.mark.parametrize(
     ("module", "args"),
     [
+        (rm, ["rm.py", "secret.txt"]),
+        (mv, ["mv.py", "source.txt", "target.txt"]),
         (cp, ["cp.py", "source.txt", "target.txt"]),
         (chmod, ["chmod.py", "600", "secret.txt"]),
         (git_clean, ["git-clean.py", "-fd"]),
@@ -30,6 +34,10 @@ def test_shim_blocks_before_native_operation(monkeypatch, module, args):
 
     if hasattr(module, "execute_native_cp"):
         monkeypatch.setattr(module, "execute_native_cp", native)
+    elif hasattr(module, "execute_native_rm"):
+        monkeypatch.setattr(module, "execute_native_rm", native)
+    elif hasattr(module, "execute_native_mv"):
+        monkeypatch.setattr(module, "execute_native_mv", native)
     else:
         monkeypatch.setattr(module.subprocess, "run", native)
 

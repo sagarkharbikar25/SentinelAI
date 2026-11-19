@@ -58,7 +58,12 @@ class ManifestChecker:
         self.denied_ops = permissions.get("denied_operations", [])
         self.limits = data.get("limits", {})
 
-    def check(self, target_path: Optional[str], operation: str) -> ManifestCheckResult:
+    def check(
+        self,
+        target_path: Optional[str],
+        operation: str,
+        granted_paths: Optional[List[str]] = None,
+    ) -> ManifestCheckResult:
         """
         Evaluates whether an action is allowed by the manifest.
         Returns: IN_SCOPE | OUT_OF_SCOPE | NEEDS_EVALUATION
@@ -81,8 +86,12 @@ class ManifestChecker:
         if operation in self.denied_ops:
             return ManifestCheckResult.OUT_OF_SCOPE
 
-        # 3. Allowed paths check
-        if self._matches_any(norm_path, self.allowed_paths):
+        # 3. Allowed paths check (manifest allowed_paths + active session granted_paths)
+        effective_allowed = list(self.allowed_paths)
+        if granted_paths:
+            effective_allowed.extend(granted_paths)
+
+        if self._matches_any(norm_path, effective_allowed):
             if not self.allowed_ops or operation in self.allowed_ops:
                 return ManifestCheckResult.IN_SCOPE
             return ManifestCheckResult.NEEDS_EVALUATION

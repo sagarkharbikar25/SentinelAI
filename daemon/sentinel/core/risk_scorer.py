@@ -69,11 +69,11 @@ class RiskScorer:
         norm_str = str(resolved_path).replace("\\", "/")
 
         # Check existing file size
-        if resolved_path.exists() and resolved_path.is_file():
-            try:
+        try:
+            if resolved_path.exists() and resolved_path.is_file():
                 file_size = resolved_path.stat().st_size
-            except OSError:
-                file_size = 0
+        except (PermissionError, OSError):
+            file_size = 0
 
         # 1. Critical path check
         if self._is_critical(norm_str):
@@ -159,23 +159,24 @@ class RiskScorer:
 
     def _detect_git_tracked(self, file_path: Path) -> bool:
         """Best-effort check if file is tracked by git without hard dependency."""
-        current = file_path.parent
-        while current != current.parent:
-            if (current / ".git").exists():
-                # Within a git directory
-                # Check for GitPython or git command if available, else assume tracked if in git repo
+        try:
+            current = file_path.parent
+            while current != current.parent:
                 try:
-                    import subprocess
-                    result = subprocess.run(
-                        ["git", "ls-files", "--error-unmatch", str(file_path)],
-                        cwd=str(current),
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    return result.returncode == 0
-                except Exception:
-                    return True
-            current = current.parent
+                    if (current / ".git").exists():
+                        import subprocess
+                        result = subprocess.run(
+                            ["git", "ls-files", "--error-unmatch", str(file_path)],
+                            cwd=str(current),
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        return result.returncode == 0
+                except (PermissionError, OSError):
+                    pass
+                current = current.parent
+        except (PermissionError, OSError):
+            pass
         return False
 
     def _was_recently_edited(self, file_path: Path, minutes: int = 10) -> bool:
