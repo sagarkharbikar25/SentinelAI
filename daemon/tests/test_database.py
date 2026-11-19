@@ -17,6 +17,8 @@ from sentinel.db.models import (
     Decision,
     Policy,
     PolicyRule,
+    RestorePoint,
+    Scope,
     Session as DbSession,
     Snapshot,
     VaultEntry,
@@ -198,3 +200,56 @@ def test_canary_manager_planting_and_verification(test_db, tmp_path):
     canary_file.unlink()
     violations_missing = manager.verify_canaries()
     assert any(v["status"] == "MISSING_DELETED" for v in violations_missing)
+
+
+def test_scopes_and_restore_points(test_db):
+    """Test Member 2 Scope and RestorePoint relational models."""
+    # 1. Create Watched Scope
+    scope = Scope(
+        id=str(uuid4()),
+        path="d:/GitHub/SentinelAI",
+        is_zone=True,
+        protection_level="BACKUP",
+        quota_bytes=5 * 1024 * 1024 * 1024,
+    )
+    test_db.add(scope)
+    test_db.commit()
+
+    queried_scope = test_db.query(Scope).filter_by(path="d:/GitHub/SentinelAI").first()
+    assert queried_scope is not None
+    assert queried_scope.is_zone is True
+    assert queried_scope.protection_level == "BACKUP"
+
+    # 2. Create Restore Point
+    rp = RestorePoint(
+        id=str(uuid4()),
+        label="Pre-refactor snapshot",
+        manifest_json={"files": ["main.py", "auth.py"], "count": 2},
+    )
+    test_db.add(rp)
+    test_db.commit()
+
+    queried_rp = test_db.query(RestorePoint).filter_by(id=rp.id).first()
+    assert queried_rp is not None
+    assert queried_rp.label == "Pre-refactor snapshot"
+    assert queried_rp.manifest_json["count"] == 2
+
+
+def test_audit_log_hash_chain_fields(test_db):
+    """Test AuditLog model supports cryptographic prev_hash and row_hash fields."""
+    log = AuditLog(
+        id=str(uuid4()),
+        action_id=str(uuid4()),
+        action_type="FILE_DELETE",
+        outcome="ALLOW",
+        target_path="/tmp/test.txt",
+        prev_hash="0000000000000000000000000000000000000000000000000000000000000000",
+        row_hash=hashlib.sha256(b"canonical_row_payload").hexdigest(),
+    )
+    test_db.add(log)
+    test_db.commit()
+
+    queried = test_db.query(AuditLog).filter_by(id=log.id).first()
+    assert queried is not None
+    assert queried.prev_hash.startswith("0000")
+    assert len(queried.row_hash) == 64

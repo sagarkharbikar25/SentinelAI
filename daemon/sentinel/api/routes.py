@@ -28,12 +28,14 @@ from sentinel.api.schemas import (
 )
 from sentinel.config import MANIFESTS_DIR, POLICIES_DIR, PROMPT_TIMEOUT_SECONDS
 from sentinel.core.decision_engine import DecisionEngine, DecisionOutcome
+from sentinel.core.hash_chain import HashChainManager
 from sentinel.core.llm_explainer import LLMExplainer
 from sentinel.core.manifest_checker import ManifestChecker
 from sentinel.core.policy_engine import PolicyEngine, create_default_policies
 from sentinel.core.risk_scorer import RiskScorer
 from sentinel.db.database import get_db
-from sentinel.db.models import Action, Alert, AuditLog, Decision, Session as DbSessionModel
+from sentinel.db.models import Action, Agent, Alert, AuditLog, Decision, Session as DbSessionModel
+from sentinel.tools.verify_log import verify_audit_chain
 
 router = APIRouter(prefix="/daemon", tags=["Sentinel Daemon"])
 
@@ -105,9 +107,22 @@ async def list_tools():
 async def start_session(req: StartSessionRequest, db: DBSession = Depends(get_db)):
     """Starts an agent session with granted scopes."""
     global active_session_id
+
+    # Ensure agent exists to satisfy relational foreign key constraint
+    agent = db.query(Agent).filter((Agent.id == req.agent_id) | (Agent.name == req.agent_id)).first()
+    if not agent:
+        agent = Agent(
+            id=req.agent_id,
+            name=req.agent_id,
+            agent_type="MCP",
+            status="ACTIVE",
+        )
+        db.add(agent)
+        db.commit()
+
     new_session = DbSessionModel(
         id=str(uuid4()),
-        agent_id=req.agent_id,
+        agent_id=agent.id,
         task_description=req.task_description,
         granted_paths=req.granted_paths,
         started_at=datetime.utcnow(),
@@ -174,11 +189,26 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
     action_id = str(uuid4())
     final_outcome = decision.outcome.value
 
+    # Ensure agent exists to satisfy foreign key constraints
+    agent_db_id = None
+    if req.agent_id:
+        agent = db.query(Agent).filter((Agent.id == req.agent_id) | (Agent.name == req.agent_id)).first()
+        if not agent:
+            agent = Agent(
+                id=req.agent_id,
+                name=req.agent_id,
+                agent_type=req.agent_type or "GENERIC",
+                status="ACTIVE",
+            )
+            db.add(agent)
+            db.commit()
+        agent_db_id = agent.id
+
     # Create Action record
     action_record = Action(
         id=action_id,
         session_id=current_sess_id,
-        agent_id=req.agent_id,
+        agent_id=agent_db_id,
         action_type=req.action_type,
         target_path=req.target_path,
         target_url=req.target_url,
@@ -232,17 +262,28 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
     )
     db.add(decision_record)
 
-    # 4. Append to immutable audit log flight recorder
+    # 4. Append to immutable audit log flight recorder with cryptographic SHA-256 chaining
+    created_now = datetime.utcnow()
+    audit_data = {
+        "id": str(uuid4()),
+        "action_id": action_id,
+        "session_id": current_sess_id,
+        "agent_id": agent_db_id,
+        "action_type": req.action_type,
+        "target_path": req.target_path,
+        "outcome": final_outcome,
+        "risk_score": decision.risk_score,
+        "file_diff_hash": None,
+        "ip_address": "127.0.0.1",
+        "created_at": created_now,
+    }
+    chain_mgr = HashChainManager(db)
+    prev_h, row_h = chain_mgr.calculate_chain_hashes(audit_data)
+
     audit_log = AuditLog(
-        id=str(uuid4()),
-        action_id=action_id,
-        session_id=current_sess_id,
-        agent_id=req.agent_id,
-        action_type=req.action_type,
-        target_path=req.target_path,
-        outcome=final_outcome,
-        risk_score=decision.risk_score,
-        created_at=datetime.utcnow(),
+        **audit_data,
+        prev_hash=prev_h,
+        row_hash=row_h,
     )
     db.add(audit_log)
     db.commit()
@@ -259,6 +300,12 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
         risk_category=decision.risk_category.value,
         snapshot_taken=False,
     )
+
+
+@router.get("/verify-log")
+async def verify_log_endpoint(db: DBSession = Depends(get_db)):
+    """Verifies cryptographic hash chain integrity of the audit flight recorder."""
+    return verify_audit_chain(db)
 
 
 @router.get("/prompts/pending")

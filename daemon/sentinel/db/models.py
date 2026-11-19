@@ -200,6 +200,7 @@ class AuditLog(Base):
     """
     Append-only flight recorder log.
     Strictly records every intercepted operation and outcome.
+    Cryptographically chained via SHA-256 (prev_hash -> row_hash).
     Never update or delete records here.
     """
     __tablename__ = "audit_logs"
@@ -214,10 +215,51 @@ class AuditLog(Base):
     risk_score = Column(Integer, default=0)
     file_diff_hash = Column(String(64), nullable=True)
     ip_address = Column(String(45), nullable=True)
+    prev_hash = Column(String(64), nullable=True)
+    row_hash = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     __table_args__ = (
         Index("idx_audit_created_at", "created_at"),
+        Index("idx_audit_row_hash", "row_hash"),
+    )
+
+
+class Scope(Base):
+    """
+    Watched folders and protection zones configured by user.
+    """
+    __tablename__ = "scopes"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    path = Column(String(1024), unique=True, nullable=False)
+    is_zone = Column(Boolean, default=True)  # True = Backup zone, False = Alert only
+    protection_level = Column(String(50), default="BACKUP")  # BACKUP | ALERT_ONLY | IGNORE
+    quota_bytes = Column(Integer, default=10 * 1024 * 1024 * 1024)  # 10 GB default quota
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_scopes_path", "path"),
+    )
+
+
+class RestorePoint(Base):
+    """
+    Session recovery snapshot point containing file manifest state.
+    """
+    __tablename__ = "restore_points"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    session_id = Column(String(36), ForeignKey("sessions.id"), nullable=True)
+    label = Column(String(255), nullable=True)
+    manifest_json = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("Session")
+
+    __table_args__ = (
+        Index("idx_restore_points_session_id", "session_id"),
+        Index("idx_restore_points_created_at", "created_at"),
     )
 
 
