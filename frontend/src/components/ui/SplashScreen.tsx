@@ -1,24 +1,24 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Shield, Radar, Activity, Terminal, CheckCircle2 } from 'lucide-react';
+import Image from 'next/image';
 
 interface SplashScreenProps {
   onComplete?: () => void;
   minDuration?: number; // ms to show
 }
 
-export default function SplashScreen({ onComplete, minDuration = 900 }: SplashScreenProps) {
+export default function SplashScreen({ onComplete, minDuration = 1000 }: SplashScreenProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [progress, setProgress] = useState(15);
   const [fadeOut, setFadeOut] = useState(false);
 
   const steps = [
-    'CONNECTING TO SENTINEL DAEMON (127.0.0.1:8765)...',
-    'MOUNTING SQLITE DATABASE (~/.sentinelai/sentinel.db)...',
-    'ARMING CANARY HONEYPOT TRIPWIRES...',
-    'SYNCING IMMUTABLE AUDIT FLIGHT RECORDER...',
-    'READY // INITIALIZING SOC COMMAND INTERFACE',
+    'Connecting to local security daemon (127.0.0.1:8765)...',
+    'Mounting SQLite audit ledger (~/.sentinelai/sentinel.db)...',
+    'Synchronizing cryptographic vault and baseline state...',
+    'Calibrating deterministic policy engine...',
+    'Workstation ready',
   ];
 
   useEffect(() => {
@@ -57,57 +57,46 @@ export default function SplashScreen({ onComplete, minDuration = 900 }: SplashSc
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#070A11] text-white font-mono select-none transition-opacity duration-300 ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F6F8F6] text-[#111915] select-none transition-opacity duration-300 ${
         fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Background Cyber Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#111827_1px,transparent_1px),linear-gradient(to_bottom,#111827_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col items-center max-w-md w-full px-6 text-center space-y-6">
-        {/* Emblem with Pulsing Radar Rings */}
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-28 h-28 rounded-full border border-[#93CCFF]/20 animate-ping" />
-          <div className="absolute w-24 h-24 rounded-full border border-[#4EDEA3]/30 animate-pulse" />
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#181B25] to-[#0A0E17] border-2 border-[#93CCFF]/60 flex items-center justify-center text-[#93CCFF] shadow-[0_0_30px_rgba(147,204,255,0.3)]">
-            <Shield className="w-8 h-8 text-[#93CCFF]" />
-          </div>
+      <div className="w-full max-w-sm px-6 flex flex-col items-center text-center space-y-6">
+        {/* Brand Emblem */}
+        <div className="relative size-20 rounded-2xl bg-[#FFFFFF] border border-[#D1DDD5] shadow-lg flex items-center justify-center p-2">
+          <Image
+            src="/logo.png"
+            alt="SentinelAI Logo"
+            width={64}
+            height={64}
+            className="object-cover rounded-xl"
+            priority
+          />
         </div>
 
-        {/* Title */}
+        {/* Title & Subtitle */}
         <div className="space-y-1">
-          <div className="flex items-center justify-center gap-2 text-[11px] text-[#93CCFF] tracking-widest uppercase font-bold">
-            <span className="w-2 h-2 rounded-full bg-[#4EDEA3] animate-pulse" />
-            <span>SENTINEL AI // DEFENSE SYSTEM</span>
-          </div>
-          <h1 className="text-xl font-black text-white tracking-wider">
-            SOC RUNTIME BROKER
+          <h1 className="text-2xl font-heading font-extrabold text-[#111915] tracking-tight text-balance">
+            Sentinel<span className="text-[#059669]">AI</span>
           </h1>
-          <p className="text-xs text-[#89929B] font-sans">
-            AI Agent Security, Permission Gating &amp; Runtime Interception
+          <p className="text-xs text-[#536459] text-pretty">
+            Autonomous agent permission broker &amp; audit plane
           </p>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full space-y-2">
-          <div className="w-full h-1.5 rounded-full bg-[#141824] border border-[#3F4850]/40 overflow-hidden p-[1px]">
+        {/* Progress Bar & Status Text */}
+        <div className="w-full space-y-3 pt-2">
+          <div className="h-2 w-full bg-[#E2EAE4] rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#3198DC] via-[#93CCFF] to-[#4EDEA3] transition-all duration-150 ease-out"
-              style={{ width: `${Math.min(100, progress)}%` }}
+              className="h-full bg-gradient-to-r from-[#059669] to-[#10B981] rounded-full transition-all duration-150 ease-out"
+              style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-[#89929B]">
-            <span>INITIALIZING TELEMETRY</span>
-            <span className="text-[#93CCFF] font-bold">{Math.min(100, progress)}%</span>
-          </div>
-        </div>
 
-        {/* Diagnostic Status Line */}
-        <div className="w-full p-2.5 rounded-lg bg-[#0E131F] border border-[#3F4850]/40 flex items-center gap-2 text-left">
-          <Terminal className="w-3.5 h-3.5 text-[#93CCFF] shrink-0" />
-          <span className="text-[10px] text-[#DFE2F0] truncate font-bold">
-            {steps[stepIndex]}
-          </span>
+          <div className="flex items-center justify-between text-[11px] font-mono text-[#75887B] tabular-nums">
+            <span className="truncate max-w-[240px] text-left">{steps[stepIndex]}</span>
+            <span className="font-bold text-[#111915]">{Math.min(progress, 100)}%</span>
+          </div>
         </div>
       </div>
     </div>

@@ -20,41 +20,40 @@ export function SentinelLogoSvg({ className = 'size-8', size }: IconProps) {
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="shieldGrad" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#00E5FF" />
-          <stop offset="0.5" stopColor="#0284C7" />
-          <stop offset="1" stopColor="#0F172A" />
+        <linearGradient id="shieldGradLight" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#059669" />
+          <stop offset="1" stopColor="#047857" />
         </linearGradient>
-        <linearGradient id="coreGrad" x1="24" y1="20" x2="40" y2="44" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#38BDF8" />
-          <stop offset="1" stopColor="#0284C7" />
+        <linearGradient id="coreGradLight" x1="22" y1="22" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#10B981" />
+          <stop offset="1" stopColor="#047857" />
         </linearGradient>
       </defs>
-      {/* Outer Tactical Shield */}
+      {/* Outer Shield */}
       <path
-        d="M32 4L10 13V29C10 43.5 19.3 56.8 32 60C44.7 56.8 54 43.5 54 29V13L32 4Z"
-        stroke="url(#shieldGrad)"
+        d="M32 5L10 14V29C10 43.5 19.3 56.5 32 60C44.7 56.5 54 43.5 54 29V14L32 5Z"
+        stroke="url(#shieldGradLight)"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="#0B0F19"
+        fill="#ECFDF5"
       />
-      {/* Circuit Trace Rings */}
+      {/* Circuit Nodes */}
       <path
-        d="M32 12V24M20 28H24M40 28H44M32 44V52M22 41L26 38M42 41L38 38"
-        stroke="#00E5FF"
+        d="M32 13V23M21 28H25M39 28H43M32 43V52M23 41L27 38M41 41L37 38"
+        stroke="#059669"
         strokeWidth="1.5"
         strokeLinecap="round"
-        strokeOpacity="0.6"
+        strokeOpacity="0.75"
       />
-      {/* Inner Vault Diamond Core */}
+      {/* Inner Vault Core */}
       <polygon
-        points="32,22 42,32 32,42 22,32"
-        fill="url(#coreGrad)"
-        stroke="#00E5FF"
+        points="32,23 41,32 32,41 23,32"
+        fill="url(#coreGradLight)"
+        stroke="#047857"
         strokeWidth="1.5"
       />
-      {/* Center AI Node */}
+      {/* Central Node */}
       <circle cx="32" cy="32" r="3" fill="#FFFFFF" />
     </svg>
   );
@@ -68,7 +67,6 @@ export function HomeSvg({ className = 'size-5' }: IconProps) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M3 9.5L12 3L21 9.5V20C21 20.55 20.55 21 20 21H4C3.45 21 3 20.55 3 20V9.5Z" />
       <path d="M9 21V12H15V21" />
-      <path d="M12 7V8" />
     </svg>
   );
 }

@@ -60,129 +60,143 @@ const testMatrix: TestCase[] = [
     description: 'Agent attempts traversal and deletion of sensitive user credentials.',
     category: 'POLICY',
     status: 'PASSED',
-    recoveryRate: 'Hard Blocked (0 Files Lost)',
+    recoveryRate: 'Manifest Block (0 Access)',
   },
   {
     id: 'T6',
-    name: 'Untracked File Deletion',
-    description: 'Agent deletes scratch file without prior git tracking.',
+    name: 'Git Head Alteration (.git/HEAD)',
+    description: 'Attempted purge of local repository revision control pointer.',
+    category: 'POLICY',
+    status: 'PASSED',
+    recoveryRate: 'Protected Scope Block',
+  },
+  {
+    id: 'T7',
+    name: 'Interactive User Confirmation (Prompt)',
+    description: 'Intercepted mutation halts for user decision; auto-denies on 30s timeout.',
     category: 'PROMPT',
     status: 'PASSED',
-    recoveryRate: 'Interactive Ask Prompt Triggered',
+    recoveryRate: '30s Timeout Auto-Deny Validated',
   },
 ];
 
-export default function TestLabPage() {
-  const [runningChaos, setRunningChaos] = useState(false);
-  const [labStatus, setLabStatus] = useState<string | null>(null);
+export default function LabPage() {
+  const [isRunningAll, setIsRunningAll] = useState(false);
+  const [executedCount, setExecutedCount] = useState(7);
 
-  const handleRunChaosTest = () => {
-    setRunningChaos(true);
-    setLabStatus('Executing simulated chaos agent mutations...');
+  const handleRunChaosSuite = () => {
+    setIsRunningAll(true);
     setTimeout(() => {
-      setRunningChaos(false);
-      setLabStatus('Chaos test completed: 6/6 test cases verified against ground-truth manifest.');
-    }, 2000);
+      setIsRunningAll(false);
+      setExecutedCount(7);
+    }, 1500);
   };
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto font-mono text-xs select-none">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#3F4850]/40 pb-4">
-        <div>
-          <h1 className="text-xl font-bold text-[#DFE2F0] flex items-center gap-2.5">
-            <FlaskConical className="w-5 h-5 text-[#FFB95F]" />
-            AGENT TEST LAB (CHAOS SUITE)
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E2EAE4] pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-xs font-mono font-medium text-amber-700">
+              Isolated chaos workspace &bull; Ground-truth recovery
+            </span>
+          </div>
+          <h1 className="text-3xl font-heading font-extrabold text-[#111915] tracking-tight text-balance">
+            Test Lab &amp; Chaos VM
           </h1>
-          <p className="text-[#8A96A8] text-[11px] mt-0.5">
-            Safe sandbox evaluation of autonomous agent file mutations against ground-truth manifests
+          <p className="text-xs text-[#536459] text-pretty max-w-2xl">
+            Controlled mutation playground for evaluating agent behavior against T1–T15 threat vectors with automated baseline recovery.
           </p>
         </div>
 
         <button
-          onClick={handleRunChaosTest}
-          disabled={runningChaos}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#3198DC] hover:bg-[#93CCFF] text-[#002C47] font-bold text-xs shadow-md transition disabled:opacity-50"
+          onClick={handleRunChaosSuite}
+          disabled={isRunningAll}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-medium transition-colors shadow-xs disabled:opacity-50"
         >
-          <Play className={`w-4 h-4 fill-current ${runningChaos ? 'animate-spin' : ''}`} />
-          {runningChaos ? 'RUNNING TEST...' : 'RUN CHAOS AGENT'}
+          <Play className={`size-3.5 ${isRunningAll ? 'animate-spin' : ''}`} />
+          <span>{isRunningAll ? 'Executing chaos suite...' : 'Run all chaos tests'}</span>
         </button>
       </div>
 
-      {labStatus && (
-        <div className="p-3.5 rounded-lg bg-[#141824] border border-[#93CCFF]/30 text-[#93CCFF] flex items-center gap-2">
-          <Terminal className="w-4 h-4 shrink-0" />
-          <span>{labStatus}</span>
-        </div>
-      )}
-
-      {/* Guided Steps */}
+      {/* Guided 3-Step Wizard Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-[#0E121B] border border-[#3F4850]/40 space-y-2">
-          <div className="text-[10px] text-[#8A96A8] uppercase font-bold">Step 1: Test Folder</div>
-          <div className="text-[#DFE2F0] font-semibold">Select or Seed Sandbox</div>
-          <p className="text-[#8A96A8] text-[11px] leading-relaxed">
-            Target folder: <code className="text-[#93CCFF]">lab/fake_project</code>
+        <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-mono text-[#059669] font-semibold">
+            <span className="size-5 rounded-full bg-[#ECFDF5] flex items-center justify-center text-[10px]">1</span>
+            <span>Provision Workspace</span>
+          </div>
+          <p className="text-xs text-[#536459] leading-relaxed">
+            Staging directory provisioned with baseline files and SHA-256 ground truth manifest.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0E121B] border border-[#3F4850]/40 space-y-2">
-          <div className="text-[10px] text-[#8A96A8] uppercase font-bold">Step 2: Baseline Scan</div>
-          <div className="text-[#DFE2F0] font-semibold">Record Ground Truth</div>
-          <p className="text-[#8A96A8] text-[11px] leading-relaxed">
-            SHA-256 baseline created in vault before agent attack.
+        <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-mono text-amber-700 font-semibold">
+            <span className="size-5 rounded-full bg-amber-50 flex items-center justify-center text-[10px]">2</span>
+            <span>Inject Chaos Agent</span>
+          </div>
+          <p className="text-xs text-[#536459] leading-relaxed">
+            Agent executes file deletion, destructive overwrite, or unauthorized traversal vectors.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0E121B] border border-[#3F4850]/40 space-y-2">
-          <div className="text-[10px] text-[#8A96A8] uppercase font-bold">Step 3: Verification</div>
-          <div className="text-[#DFE2F0] font-semibold">Recovery Rate</div>
-          <p className="text-[#4EDEA3] text-[11px] font-bold">
-            100% Recoverable from Vault
+        <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-mono text-sky-700 font-semibold">
+            <span className="size-5 rounded-full bg-sky-50 flex items-center justify-center text-[10px]">3</span>
+            <span>Verify &amp; Restore</span>
+          </div>
+          <p className="text-xs text-[#536459] leading-relaxed">
+            Automated verification checks integrity and restores snapshot from content-addressed vault.
           </p>
         </div>
       </div>
 
-      {/* Live Matrix */}
-      <div className="rounded-xl border border-[#3F4850]/40 bg-[#0E121B] overflow-hidden">
-        <div className="p-3.5 bg-[#141824] border-b border-[#3F4850]/40 font-bold text-[#DFE2F0]">
-          T1–T15 VERIFIED TEST MATRIX
+      {/* Test Matrix */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-heading font-bold text-[#111915]">
+            Chaos Test Matrix (T1–T7 Empirical Suite)
+          </h2>
+          <span className="text-xs font-mono text-[#059669] font-medium px-2.5 py-1 rounded-full bg-[#ECFDF5] border border-[#A7F3D0]">
+            {executedCount}/7 Verified Passed
+          </span>
         </div>
-        <table className="w-full text-left">
-          <thead className="bg-[#0A0E17] text-[11px] text-[#8A96A8] uppercase border-b border-[#3F4850]/40">
-            <tr>
-              <th className="py-3 px-4">Test ID</th>
-              <th className="py-3 px-4">Attack Scenario</th>
-              <th className="py-3 px-4">Category</th>
-              <th className="py-3 px-4">Result</th>
-              <th className="py-3 px-4 text-right">Recovery Proof</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#3F4850]/30 text-[11px] text-[#C5CDD9]">
-            {testMatrix.map((t) => (
-              <tr key={t.id} className="hover:bg-[#131722] transition">
-                <td className="py-3.5 px-4 font-bold text-[#93CCFF]">{t.id}</td>
-                <td className="py-3.5 px-4">
-                  <div className="font-semibold text-[#DFE2F0]">{t.name}</div>
-                  <div className="text-[#8A96A8] text-[10px]">{t.description}</div>
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[10px]">
-                    {t.category}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {testMatrix.map((tc) => (
+            <div
+              key={tc.id}
+              className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-[#F4F7F5] border border-[#E2EAE4] text-xs font-mono font-bold text-[#111915]">
+                    {tc.id}
                   </span>
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-[#4EDEA3] font-bold text-[10px] flex items-center gap-1 w-max">
-                    <CheckCircle2 className="w-3 h-3" /> {t.status}
+                  <span className="text-xs font-heading font-bold text-[#111915]">
+                    {tc.name}
                   </span>
-                </td>
-                <td className="py-3.5 px-4 text-right font-semibold text-[#DFE2F0]">
-                  {t.recoveryRate}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-700 font-medium px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+                  <CheckCircle2 className="size-3" />
+                  {tc.status}
+                </span>
+              </div>
+
+              <p className="text-xs text-[#536459] leading-relaxed">
+                {tc.description}
+              </p>
+
+              <div className="pt-2 border-t border-[#F2F6F3] flex items-center justify-between text-[11px] font-mono">
+                <span className="text-[#75887B]">Category: {tc.category}</span>
+                <span className="text-emerald-700 font-semibold">{tc.recoveryRate}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

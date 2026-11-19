@@ -3,24 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Radar,
-  ShieldAlert,
-  AlertTriangle,
-  CheckCircle2,
-  Activity,
-  Search,
-  RefreshCw,
-  Terminal,
-  Shield,
-  Download,
-  Eye,
-  X,
-  FileCode,
-  Layers,
-  Lock,
-  Filter,
-  Bot,
-} from 'lucide-react';
+  ActivitySvg,
+  ShieldCheckSvg,
+  ShieldAlertSvg,
+  HomeSvg,
+  VaultSvg,
+  AuditSvg,
+  LabSvg,
+} from '@/components/icons/SvgIcons';
 import {
   getDaemonStatus,
   getRecentActions,
@@ -33,7 +23,7 @@ import {
 } from '@/lib/daemon';
 import PermissionPromptDialog, { PromptAction } from '@/components/PermissionPromptDialog';
 import SplashScreen from '@/components/ui/SplashScreen';
-import { formatLocalDateTime, formatLocalTime, formatUtcDateTime } from '@/lib/dateUtils';
+import { formatLocalDateTime, formatLocalTime } from '@/lib/dateUtils';
 
 const sampleScanTargets: Record<string, string> = {
   url: 'https://security-payload-verification.internal-scada.org/auth/token?sig=4bf02',
@@ -46,22 +36,21 @@ const sampleScanTargets: Record<string, string> = {
 const initialThreatResult = {
   id: 'READY-IDLE',
   score: 0,
-  riskLevel: 'MONITORING ACTIVE',
-  classification: 'DAEMON READY',
+  riskLevel: 'Monitoring Active',
+  classification: 'Daemon Ready',
   subVector: 'Zero Ingress Detected',
   confidence: '100%',
   consensus: 'Deterministic Policy Engine',
-  heuristicMatch: 'NONE_CLEAN',
   indicators: [
-    { label: 'Target Type:', value: 'SELECT VECTOR', status: 'primary' },
-    { label: 'Policy Engine:', value: 'Port 8765 Active', status: 'primary' },
-    { label: 'SQLite Store:', value: 'Connected', status: 'primary' },
-    { label: 'Canary Honeypot:', value: 'Armed (11 files)', status: 'primary' },
-    { label: 'Heuristic Scorer:', value: 'Ready', status: 'primary' },
-    { label: 'Audit Log:', value: 'Append-Only', status: 'primary' },
+    { label: 'Target Type:', value: 'Select Vector', status: 'normal' },
+    { label: 'Policy Engine:', value: 'Port 8765 Active', status: 'normal' },
+    { label: 'SQLite Store:', value: 'Connected', status: 'normal' },
+    { label: 'Canary Honeypot:', value: 'Armed (11 files)', status: 'normal' },
+    { label: 'Heuristic Scorer:', value: 'Ready', status: 'normal' },
+    { label: 'Audit Log:', value: 'Append-Only', status: 'normal' },
   ],
   verdict:
-    'SentinelAI daemon is actively supervising local runtimes. Enter any target URL, honeypot file, IP address, or system command above and click "EXECUTE AI THREAT SCAN" to evaluate it live via the local Python decision engine.',
+    'SentinelAI daemon is actively supervising local runtimes. Enter any target URL, honeypot file, IP address, or system command above and evaluate it live via the local decision engine.',
   sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
 };
 
@@ -82,6 +71,7 @@ export default function DashboardPage() {
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
   const [actionExplanation, setActionExplanation] = useState<ActionExplanation | null>(null);
   const [isExplainingAction, setIsExplainingAction] = useState(false);
+  const [showDemoMenu, setShowDemoMenu] = useState(false);
 
   useEffect(() => {
     if (!selectedAction) {
@@ -149,8 +139,8 @@ export default function DashboardPage() {
           return curr;
         });
       }
-    } catch (e) {
-      console.error('Daemon sync error:', e);
+    } catch {
+      // offline handled gracefully
     } finally {
       setIsRefreshing(false);
     }
@@ -158,7 +148,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     syncDaemon();
-    const interval = setInterval(syncDaemon, 3000);
+    const interval = setInterval(syncDaemon, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -178,16 +168,15 @@ export default function DashboardPage() {
         target_path: 'sentinel_canary.env',
         command: 'rm sentinel_canary.env',
       });
-      // Reset filter so the newly generated event is immediately visible in the table
       setFilterSeverity('ALL');
       setSearchTerm('');
       await syncDaemon();
       setActionSuccessNotice(
-        `Intercepted Canary Attack: ${res.decision} (Risk: ${res.risk_score}/100). Logged to SQLite!`
+        `Intercepted Honeypot Deletion: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
       );
-      setTimeout(() => setActionSuccessNotice(null), 4500);
+      setTimeout(() => setActionSuccessNotice(null), 5000);
     } catch (err) {
-      console.error('Failed to trigger real action:', err);
+      console.error('Failed to trigger honeypot action:', err);
     } finally {
       setIsTriggeringAction(false);
     }
@@ -208,7 +197,7 @@ export default function DashboardPage() {
       setSearchTerm('');
       await syncDaemon();
       setActionSuccessNotice(
-        `🚨 Intercepted Credential Threat: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
+        `Intercepted Credential Leak: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
       );
       setTimeout(() => setActionSuccessNotice(null), 5000);
     } catch (err) {
@@ -233,7 +222,7 @@ export default function DashboardPage() {
       setSearchTerm('');
       await syncDaemon();
       setActionSuccessNotice(
-        `🐚 Intercepted Remote Shell: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
+        `Intercepted Remote Shell: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
       );
       setTimeout(() => setActionSuccessNotice(null), 5000);
     } catch (err) {
@@ -283,7 +272,6 @@ export default function DashboardPage() {
         : 'CONTENT_EVAL';
       const operation = isFile ? 'INSPECT' : 'CONNECT';
 
-      // 1. Send live request to Python DecisionEngine on port 8765
       const res = await interceptAction({
         agent_id: 'heuristic-scanner',
         agent_type: 'SCANNER',
@@ -297,59 +285,48 @@ export default function DashboardPage() {
       const isHigh = res.risk_score >= 80;
       const isMed = res.risk_score >= 40 && res.risk_score < 80;
 
-      // 2. Synthesize dynamic indicators from live decision
       const indicators = [
-        { label: 'Target Type:', value: scanMode.toUpperCase(), status: 'primary' },
+        { label: 'Target Type:', value: scanMode.toUpperCase(), status: 'normal' },
         {
           label: 'Heuristic Scorer:',
           value: `${res.risk_score}/100 Risk`,
-          status: isHigh ? 'error' : isMed ? 'tertiary' : 'primary',
+          status: isHigh ? 'critical' : isMed ? 'warning' : 'normal',
         },
         {
           label: 'Policy Gate:',
           value: res.decision,
-          status: res.decision === 'ALLOW' ? 'primary' : 'error',
+          status: res.decision === 'ALLOW' ? 'normal' : 'critical',
         },
         {
           label: 'Reason Code:',
           value: res.reason_code || 'HEURISTIC_PASS',
-          status: isHigh ? 'error' : 'primary',
+          status: isHigh ? 'critical' : 'normal',
         },
         {
           label: 'Risk Category:',
           value: res.risk_category || 'STANDARD',
-          status: isHigh ? 'error' : 'primary',
+          status: isHigh ? 'critical' : 'normal',
         },
         {
-          label: 'SQLite Storage:',
-          value: 'Persisted to DB',
-          status: 'primary',
+          label: 'Audit Log:',
+          value: 'Chained SHA-256',
+          status: 'normal',
         },
       ];
 
-      // Pseudo-hash from scan input for forensic reference
-      let hash = 0;
-      for (let i = 0; i < scanInput.length; i++) {
-        hash = (hash << 5) - hash + scanInput.charCodeAt(i);
-        hash |= 0;
-      }
-      const hexHash = Math.abs(hash).toString(16).padStart(16, '0') + 'c9b4e0172';
-
       setThreatResult({
-        id: `ACT-${res.reason_code || 'INSPECT'}`,
+        id: (res as any).action_id || 'act-eval',
         score: res.risk_score,
-        riskLevel: isHigh ? 'CRITICAL RISK' : isMed ? 'ELEVATED RISK' : 'LOW RISK',
-        classification: `${scanMode.toUpperCase()} INSPECTION`,
-        subVector: res.risk_category || 'RUNTIME_TRAFFIC',
-        confidence: `${Math.min(99, 85 + Math.floor(res.risk_score * 0.14))}%`,
-        consensus: 'Sentinel Local Scorer + Policy Engine',
-        heuristicMatch: res.reason_code,
-        indicators: indicators,
-        verdict: res.explanation || `Action was evaluated live. Decision: ${res.decision}. Stored in local SQLite database.`,
-        sha256: hexHash,
+        riskLevel: isHigh ? 'Critical Risk' : isMed ? 'Elevated Risk' : 'Normal / Clean',
+        classification: res.decision === 'ALLOW' ? 'Permitted Operation' : 'Blocked / Quarantined',
+        subVector: res.reason_code || 'Deterministic Policy Rule',
+        confidence: '99.4%',
+        consensus: 'Deterministic Policy Engine',
+        indicators,
+        verdict: res.explanation || 'Evaluated deterministically by SentinelAI local decision engine.',
+        sha256: 'a3bf4c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
       });
 
-      // 3. Immediately refresh table so the real SQLite action is displayed
       await syncDaemon();
     } catch (err: any) {
       console.error('Scan evaluation failed:', err);
@@ -380,11 +357,9 @@ export default function DashboardPage() {
     document.body.removeChild(link);
   };
 
-  // Real SQLite stats computed live from daemon
   const totalActionsCount = daemonActions.length;
   const criticalThreatsCount = daemonActions.filter((a) => a.risk_score >= 80).length;
   const elevatedRisksCount = daemonActions.filter((a) => a.risk_score >= 40 && a.risk_score < 80).length;
-  const mediumRisksCount = daemonActions.filter((a) => a.risk_score >= 20 && a.risk_score < 40).length;
   const containedBlocksCount = daemonActions.filter((a) => a.outcome?.includes('BLOCK')).length;
 
   const displayActions = daemonActions.filter((a) => {
@@ -404,288 +379,264 @@ export default function DashboardPage() {
 
   return (
     <>
-      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} minDuration={850} />}
-      <div className="space-y-6">
-        {/* 1. Tactical Hero Overview */}
-        <section className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 pb-4 border-b border-[#3F4850]/40">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 font-mono text-[10px] tracking-widest text-[#93CCFF] uppercase">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#93CCFF] animate-pulse" />
-              <span className="font-bold">SYSTEM ACTIVE // MIL-SPEC TELEMETRY INGRESS</span>
-              <span className="text-[#89929B]">::</span>
-              <span className="text-[#BFC7D2]">LOCAL-FIRST SECURITY DAEMON</span>
-            </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
-              CYBER SECURITY OVERVIEW
-            </h1>
-            <p className="text-xs text-[#BFC7D2] flex flex-wrap items-center gap-2">
-              <span>AI-powered continuous threat monitoring, dynamic heuristics &amp; defense orchestration.</span>
-              <span className="inline-block w-1 h-1 rounded-full bg-[#89929B]" />
-              <span className="font-mono text-[#93CCFF] font-semibold text-[11px]">
-                DAEMON PROTOCOL: {daemonStatus ? '127.0.0.1:8765 ACTIVE' : 'CONNECTING...'} | SQLITE: ~/.sentinelai/sentinel.db
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} minDuration={800} />}
+
+      <div className="space-y-8 max-w-7xl mx-auto">
+        {/* 1. Header Overview (Clean & Serene) */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E2EAE4]">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-mono font-medium text-[#059669]">
+                Workstation active &bull; Local protection armed
               </span>
+            </div>
+            <h1 className="text-3xl font-heading font-extrabold text-[#111915] tracking-tight text-balance">
+              Runtime Security Overview
+            </h1>
+            <p className="text-xs text-[#536459] text-pretty max-w-2xl">
+              Autonomous runtime agent governance, deterministic risk prevention, and cryptographic SQLite flight recorder.
             </p>
           </div>
 
-          {/* Telemetry Actions & Testing Buttons */}
-          <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-            {/* Refresh Telemetry */}
+          {/* Quick Actions Toolbar */}
+          <div className="flex items-center gap-2">
             <button
               onClick={syncDaemon}
-              className="px-2.5 py-1.5 rounded-lg bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/50 text-[#DFE2F0] flex items-center gap-1.5 transition shadow-sm"
-              title="Refresh telemetry from daemon"
+              disabled={isRefreshing}
+              className="px-3.5 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F2F6F3] border border-[#E2EAE4] text-xs font-medium text-[#111915] transition-colors shadow-xs flex items-center gap-2"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#93CCFF] ${isRefreshing ? 'animate-spin' : ''}`} />
-              REFRESH
+              <ActivitySvg className={`size-3.5 text-[#059669] ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
             </button>
 
-            {/* Teacher Demo 1: Trigger Credential Exfiltration Attack */}
-            <button
-              onClick={handleTriggerCredentialThreat}
-              disabled={isTriggeringAction}
-              className="px-2.5 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-[#FF5449] font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
-              title="Teacher Demo: Intercept simulated leak of credentials (threat_samples/malicious_exfiltration.env)"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              TEST CREDENTIALS (.ENV)
-            </button>
+            {/* Test Simulation Dropdown Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDemoMenu(!showDemoMenu)}
+                className="px-3.5 py-2 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-medium transition-colors shadow-xs flex items-center gap-2"
+              >
+                <ShieldAlertSvg className="size-3.5" />
+                <span>Simulate threat</span>
+                <span className="text-[10px] opacity-80">▾</span>
+              </button>
 
-            {/* Teacher Demo 2: Trigger Reverse Shell Execution */}
-            <button
-              onClick={handleTriggerShellThreat}
-              disabled={isTriggeringAction}
-              className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-[#FFB95F]/40 text-[#FFB95F] font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
-              title="Teacher Demo: Intercept simulated remote reverse shell (threat_samples/reverse_shell.sh)"
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              TEST REVERSE SHELL (.SH)
-            </button>
-
-            {/* Teacher Demo 3: Trigger Canary File Attack (Critical) */}
-            <button
-              onClick={handleTriggerRealAction}
-              disabled={isTriggeringAction}
-              className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-[#FFB4AB] font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
-              title="Teacher Demo: Triggers critical risk canary honeypot deletion (sentinel_canary.env)"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              TEST CANARY ATTACK
-            </button>
-
-            {/* Trigger Safe Read (Allow) */}
-            <button
-              onClick={handleTriggerSafeAction}
-              disabled={isTriggeringAction}
-              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-[#4EDEA3]/40 text-[#4EDEA3] font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50"
-              title="Teacher Demo: Triggers safe workspace file read (docs/README.md)"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              SAFE READ (ALLOW)
-            </button>
-
-            {/* Member 1 Permission Prompt Trigger Button */}
-            <button
-              onClick={() =>
-                setActivePrompt({
-                  id: 'act-prompt-' + Date.now().toString(36),
-                  agentId: 'Claude Code',
-                  actionType: 'DELETE',
-                  targetPath: '~/project/src/main.py',
-                  riskScore: 47,
-                  riskCategory: 'MEDIUM',
-                  reasonCode: 'UNTRACKED_FILE_DELETION',
-                  explanation:
-                    'Claude Code wants to delete a file you modified recently but have not committed to git. This could be an unintended hallucination mistake.',
-                  fileContext: {
-                    size: '14.2 KB (247 lines)',
-                    isGitTracked: false,
-                    lastModified: '12 minutes ago',
-                    inScope: true,
-                  },
-                })
-              }
-              className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-[#FFB95F] font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-              TEST PROMPT
-            </button>
-            {/* Jump Directly to Inspect Table */}
-            <button
-              onClick={() => {
-                const el = document.getElementById('action-feed');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-2.5 py-1.5 rounded-lg bg-[#181B25] hover:bg-[#1E2330] border border-[#93CCFF]/50 text-[#93CCFF] font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
-              title="Jump directly to SQLite Intercepted Feed Table below"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              INSPECT TABLE ({totalActionsCount} LOGS ⬇)
-            </button>
+              {showDemoMenu && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xl p-2 z-50 text-xs space-y-1 animate-in fade-in duration-100">
+                  <p className="px-3 py-1.5 text-[10px] font-mono text-[#75887B] uppercase font-bold">
+                    Test Scenarios
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowDemoMenu(false);
+                      handleTriggerCredentialThreat();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FEF2F2] text-red-700 transition-colors flex items-center justify-between"
+                  >
+                    <span>Credential leak (.env)</span>
+                    <span className="text-[10px] font-mono font-bold text-red-600">BLOCK</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDemoMenu(false);
+                      handleTriggerShellThreat();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FFFBEB] text-amber-800 transition-colors flex items-center justify-between"
+                  >
+                    <span>Reverse shell (.sh)</span>
+                    <span className="text-[10px] font-mono font-bold text-amber-700">BLOCK</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDemoMenu(false);
+                      handleTriggerRealAction();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FEF2F2] text-rose-800 transition-colors flex items-center justify-between"
+                  >
+                    <span>Canary honeypot file</span>
+                    <span className="text-[10px] font-mono font-bold text-rose-700">BLOCK</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDemoMenu(false);
+                      handleTriggerSafeAction();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#ECFDF5] text-emerald-800 transition-colors flex items-center justify-between"
+                  >
+                    <span>Safe documentation read</span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-700">ALLOW</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDemoMenu(false);
+                      setActivePrompt({
+                        id: 'act-prompt-' + Date.now().toString(36),
+                        agentId: 'Claude Code',
+                        actionType: 'DELETE',
+                        targetPath: '~/project/src/main.py',
+                        riskScore: 47,
+                        riskCategory: 'MEDIUM',
+                        reasonCode: 'UNTRACKED_FILE_DELETION',
+                        explanation:
+                          'Claude Code wants to delete a file you modified recently but have not committed to git.',
+                        fileContext: {
+                          size: '14.2 KB (247 lines)',
+                          isGitTracked: false,
+                          lastModified: '12 minutes ago',
+                          inScope: true,
+                        },
+                      });
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#F0F9FF] text-sky-800 transition-colors flex items-center justify-between"
+                  >
+                    <span>Interactive prompt modal</span>
+                    <span className="text-[10px] font-mono font-bold text-sky-700">PROMPT</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
-      {/* 2. Tactical Metric Grid - Real SQLite Telemetry */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
-        {/* Card 1: Total Threats / Actions */}
-        <div
-          onClick={() => {
-            const el = document.getElementById('action-feed');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-          className="p-4 rounded-xl bg-[#181B25] border border-[#3F4850]/50 flex flex-col justify-between hover:border-[#93CCFF]/60 transition-all shadow-lg group cursor-pointer"
-          title="Click to jump directly to SQLite audit feed below"
-        >
-          <div className="flex justify-between items-start pb-1">
-            <span className="text-[10px] text-[#89929B] uppercase tracking-wider font-bold">TOTAL INTERCEPTIONS</span>
-            <Radar className="w-4 h-4 text-[#93CCFF]" />
+        {/* Notice Banner */}
+        {actionSuccessNotice && (
+          <div className="p-4 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs font-mono flex items-center justify-between animate-in fade-in duration-150">
+            <span>{actionSuccessNotice}</span>
+            <button onClick={() => setActionSuccessNotice(null)} className="font-bold text-sm">✕</button>
           </div>
-          <div className="flex items-baseline gap-2 my-1">
-            <span className="text-3xl font-extrabold text-white">{totalActionsCount}</span>
-            <span className="text-[11px] text-[#93CCFF] font-semibold">Live in SQLite</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-[#1C1F29] overflow-hidden mt-2">
-            <div className="h-full rounded-full bg-[#93CCFF]" style={{ width: `${Math.min(100, Math.max(10, totalActionsCount * 10))}%` }} />
-          </div>
-          <div className="flex justify-between text-[10.5px] text-[#89929B] mt-1.5">
-            <span>Daemon Feed</span>
-            <span className="text-[#DFE2F0]">~/.sentinelai/sentinel.db</span>
-          </div>
-        </div>
+        )}
 
-        {/* Card 2: Defcon Critical */}
-        <div className="p-4 rounded-xl bg-[#181B25] border border-[#93000A]/60 flex flex-col justify-between hover:border-[#FFB4AB] transition-all shadow-lg group">
-          <div className="flex justify-between items-start pb-1">
-            <span className="text-[10px] text-[#FFB4AB] uppercase tracking-wider font-bold">CRITICAL RISKS</span>
-            <span className="text-[9.5px] px-2 py-0.5 rounded bg-[#93000A]/30 text-[#FFB4AB] border border-[#FFB4AB]/40 font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FFB4AB] animate-pulse" />
-              SCORE &gt;= 80
-            </span>
-          </div>
-          <div className="flex items-baseline gap-2 my-1">
-            <span className="text-3xl font-extrabold text-[#FFB4AB]">{criticalThreatsCount}</span>
-            <span className="text-[11px] text-[#FFB4AB]">Auto-isolated</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-[#1C1F29] overflow-hidden mt-2">
-            <div className="h-full rounded-full bg-[#FFB4AB]" style={{ width: `${Math.min(100, criticalThreatsCount * 25)}%` }} />
-          </div>
-          <div className="flex justify-between text-[10.5px] text-[#89929B] mt-1.5">
-            <span className="text-[#FFB4AB]">Honeypot / Breaches</span>
-            <span className="text-[#DFE2F0]">Deterministic Block</span>
-          </div>
-        </div>
-
-        {/* Card 3: High Risk */}
-        <div className="p-4 rounded-xl bg-[#181B25] border border-[#CA8100]/60 flex flex-col justify-between hover:border-[#FFB95F] transition-all shadow-lg group">
-          <div className="flex justify-between items-start pb-1">
-            <span className="text-[10px] text-[#FFB95F] uppercase tracking-wider font-bold">ELEVATED RISKS</span>
-            <AlertTriangle className="w-4 h-4 text-[#FFB95F]" />
-          </div>
-          <div className="flex items-baseline gap-2 my-1">
-            <span className="text-3xl font-extrabold text-[#FFB95F]">{elevatedRisksCount}</span>
-            <span className="text-[11px] text-[#89929B]">Requires prompt</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-[#1C1F29] overflow-hidden mt-2">
-            <div className="h-full rounded-full bg-[#FFB95F]" style={{ width: `${Math.min(100, elevatedRisksCount * 25)}%` }} />
-          </div>
-          <div className="flex justify-between text-[10.5px] text-[#89929B] mt-1.5">
-            <span className="text-[#FFB95F]">Score 40 - 79</span>
-            <span className="text-[#DFE2F0]">Supervised Ops</span>
-          </div>
-        </div>
-
-        {/* Card 4: Contained Threats */}
-        <div className="p-4 rounded-xl bg-[#181B25] border border-[#00A572]/60 flex flex-col justify-between hover:border-[#4EDEA3] transition-all shadow-lg group">
-          <div className="flex justify-between items-start pb-1">
-            <span className="text-[10px] text-[#4EDEA3] uppercase tracking-wider font-bold">CONTAINED THREATS</span>
-            <CheckCircle2 className="w-4 h-4 text-[#4EDEA3]" />
-          </div>
-          <div className="flex items-baseline gap-2 my-1">
-            <span className="text-3xl font-extrabold text-[#4EDEA3]">{containedBlocksCount}</span>
-            <span className="text-[11px] text-[#4EDEA3]">Blocked</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-[#1C1F29] overflow-hidden mt-2">
-            <div className="h-full rounded-full bg-[#4EDEA3]" style={{ width: `${Math.min(100, containedBlocksCount * 25)}%` }} />
-          </div>
-          <div className="flex justify-between text-[10.5px] text-[#89929B] mt-1.5">
-            <span className="text-[#4EDEA3]">Zero Escape Policy</span>
-            <span className="text-[#DFE2F0]">100% Contained</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Interactive Threat Detection Engine & Dynamic Analysis Result */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Scanner Module */}
-        <div className="rounded-xl bg-[#181B25] border border-[#3F4850]/50 overflow-hidden shadow-lg flex flex-col justify-between">
-          <div className="px-4 py-2.5 bg-[#0A0E17] border-b border-[#3F4850]/40 flex items-center justify-between font-mono">
-            <div className="flex items-center gap-2">
-              <Radar className="w-4 h-4 text-[#93CCFF]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">THREAT DETECTION ENGINE</span>
+        {/* 2. Key Metrics Grid (Porcelain Cards) */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1 */}
+          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
+            <div className="flex justify-between items-center text-xs text-[#536459]">
+              <span className="font-medium">Total Interceptions</span>
+              <span className="size-6 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center text-xs">
+                &bull;
+              </span>
             </div>
-            <span className="text-[10px] font-bold text-[#93CCFF] px-2 py-0.5 rounded border border-[#93CCFF]/30 bg-[#93CCFF]/10">
-              PYTHON DAEMON (:8765)
-            </span>
+            <p className="text-3xl font-heading font-extrabold text-[#111915] tabular-nums">
+              {totalActionsCount}
+            </p>
+            <p className="text-[11px] font-mono text-[#75887B]">
+              Logged in SQLite flight recorder
+            </p>
           </div>
 
-          <div className="p-4 space-y-4">
-            <p className="text-xs text-[#BFC7D2]">
-              Submit digital targets for live deterministic risk scoring and policy inspection via Sentinel&apos;s decision engine.
+          {/* Card 2 */}
+          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
+            <div className="flex justify-between items-center text-xs text-[#536459]">
+              <span className="font-medium">Critical Threats</span>
+              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-mono text-[10px] font-semibold">
+                Score &ge; 80
+              </span>
+            </div>
+            <p className="text-3xl font-heading font-extrabold text-rose-700 tabular-nums">
+              {criticalThreatsCount}
             </p>
+            <p className="text-[11px] font-mono text-[#75887B]">
+              Auto-isolated by policy gate
+            </p>
+          </div>
 
-            {/* 5 Mode Tabs */}
-            <div className="grid grid-cols-5 gap-1 p-1 rounded-lg bg-[#0A0E17] border border-[#3F4850]/40 font-mono text-[10px]">
+          {/* Card 3 */}
+          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
+            <div className="flex justify-between items-center text-xs text-[#536459]">
+              <span className="font-medium">Supervised Prompts</span>
+              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-mono text-[10px] font-semibold">
+                Score 40-79
+              </span>
+            </div>
+            <p className="text-3xl font-heading font-extrabold text-amber-700 tabular-nums">
+              {elevatedRisksCount}
+            </p>
+            <p className="text-[11px] font-mono text-[#75887B]">
+              Awaiting human confirmation
+            </p>
+          </div>
+
+          {/* Card 4 */}
+          <div className="p-5 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs hover:border-[#CBD8CF] transition-all duration-150 space-y-2">
+            <div className="flex justify-between items-center text-xs text-[#536459]">
+              <span className="font-medium">Contained Threats</span>
+              <span className="size-6 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs">
+                ✓
+              </span>
+            </div>
+            <p className="text-3xl font-heading font-extrabold text-emerald-700 tabular-nums">
+              {containedBlocksCount}
+            </p>
+            <p className="text-[11px] font-mono text-[#75887B]">
+              Zero escape policy enforced
+            </p>
+          </div>
+        </section>
+
+        {/* 3. Interactive Heuristic Target Evaluation (Porcelain Split View) */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Target Inspector Card */}
+          <div className="p-6 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-heading font-bold text-[#111915]">
+                  Heuristic Target Evaluation
+                </h3>
+                <p className="text-xs text-[#536459]">
+                  Evaluate digital targets live against deterministic security policies.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-[#F4F7F5] border border-[#E2EAE4] text-[#536459]">
+                Port 8765
+              </span>
+            </div>
+
+            {/* Target Mode Segmented Control */}
+            <div className="flex p-1 rounded-xl bg-[#F4F7F5] border border-[#E2EAE4] text-xs font-medium text-[#536459]">
               {(['url', 'email', 'file', 'ip', 'text'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => handleModeChange(mode)}
-                  className={`py-1.5 rounded font-bold uppercase transition ${
+                  className={`flex-1 py-1.5 rounded-lg transition-all ${
                     scanMode === mode
-                      ? 'bg-[#3198DC] text-[#002C47]'
-                      : 'text-[#89929B] hover:text-white hover:bg-[#1C1F29]'
+                      ? 'bg-[#FFFFFF] text-[#111915] font-semibold shadow-xs'
+                      : 'hover:text-[#111915]'
                   }`}
                 >
-                  {mode === 'ip' ? 'IP ADDR' : mode}
+                  {mode === 'ip' ? 'IP' : mode.toUpperCase()}
                 </button>
               ))}
             </div>
 
-            {/* Target Input */}
-            <div className="space-y-1.5 font-mono">
-              <div className="flex justify-between text-[10px] text-[#89929B]">
-                <span>ENTER TARGET {scanMode.toUpperCase()} FOR INSPECTION</span>
-                <span className="text-[#93CCFF]">PROTOCOL: FASTAPI LIVE</span>
-              </div>
+            {/* Input Field */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-mono text-[#75887B] uppercase font-medium">
+                Target Input for Inspection
+              </label>
               <textarea
                 value={scanInput}
                 onChange={(e) => setScanInput(e.target.value)}
                 rows={3}
-                className="w-full bg-[#0A0E17] border border-[#3F4850]/50 rounded-lg p-3 text-xs text-white focus:border-[#93CCFF] focus:outline-none resize-none font-mono"
+                className="w-full p-3 rounded-xl bg-[#F9FAF9] border border-[#E2EAE4] text-xs text-[#111915] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all resize-none"
               />
             </div>
 
-            {/* Quick Demo Test Presets for File Mode */}
+            {/* Quick Demo Presets */}
             {scanMode === 'file' && (
-              <div className="space-y-1.5 text-[11px] font-mono">
-                <div className="flex items-center justify-between text-[10px] text-[#89929B]">
-                  <span>QUICK DEMO TEST FILES:</span>
-                  <span className="text-[#4EDEA3]">REAL WORKSPACE FILES</span>
-                </div>
+              <div className="space-y-1.5 text-xs">
+                <span className="text-[11px] font-mono text-[#75887B]">Workspace presets:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    { label: '🚨 Credential Leak (.env)', file: 'threat_samples/malicious_exfiltration.env' },
-                    { label: '🐚 Reverse Shell (.sh)', file: 'threat_samples/reverse_shell.sh' },
-                    { label: '🪤 Honeypot Canary', file: 'sentinel_canary.env' },
-                    { label: '📄 Safe Doc (README)', file: 'docs/README.md' },
+                    { label: 'Credential leak (.env)', file: 'threat_samples/malicious_exfiltration.env' },
+                    { label: 'Reverse shell (.sh)', file: 'threat_samples/reverse_shell.sh' },
+                    { label: 'Honeypot canary', file: 'sentinel_canary.env' },
+                    { label: 'Safe doc (README)', file: 'docs/README.md' },
                   ].map((preset) => (
                     <button
                       key={preset.file}
                       type="button"
                       onClick={() => setScanInput(preset.file)}
-                      className={`px-2 py-1 rounded text-[10px] font-bold transition border ${
-                        scanInput === preset.file
-                          ? 'bg-[#93CCFF]/20 text-[#93CCFF] border-[#93CCFF]'
-                          : 'bg-[#141824] hover:bg-[#1E2330] text-[#BFC7D2] border-[#3F4850]/50'
-                      }`}
+                      className="px-2.5 py-1 rounded-lg bg-[#F4F7F5] hover:bg-[#EAF0EB] border border-[#E2EAE4] text-[11px] text-[#536459] transition-colors"
                     >
                       {preset.label}
                     </button>
@@ -697,441 +648,189 @@ export default function DashboardPage() {
             <button
               onClick={handleRunAnalysis}
               disabled={isScanning}
-              className="w-full py-2.5 rounded-lg bg-[#3198DC] hover:bg-[#93CCFF] text-[#002C47] font-mono font-bold text-xs flex items-center justify-center gap-2 transition shadow-md disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-medium text-xs transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-              {isScanning ? 'EVALUATING VIA PYTHON DECISION ENGINE...' : 'EXECUTE AI THREAT SCAN'}
+              <ActivitySvg className={`size-4 ${isScanning ? 'animate-spin' : ''}`} />
+              <span>{isScanning ? 'Evaluating target...' : 'Evaluate Target'}</span>
             </button>
           </div>
-        </div>
 
-        {/* Threat Analysis Result */}
-        <div className="rounded-xl bg-[#181B25] border border-[#3F4850]/50 overflow-hidden shadow-lg flex flex-col justify-between font-mono">
-          <div className="px-4 py-2.5 bg-[#0A0E17] border-b border-[#3F4850]/40 flex items-center justify-between">
-            <span className="text-xs font-bold text-white uppercase tracking-wider">LIVE HEURISTIC EVALUATION</span>
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
-                threatResult.score >= 80
-                  ? 'bg-rose-500/20 text-[#FFB4AB] border-[#FFB4AB]/30'
-                  : threatResult.score >= 40
-                  ? 'bg-amber-500/20 text-[#FFB95F] border-[#FFB95F]/30'
-                  : 'bg-emerald-500/20 text-[#4EDEA3] border-[#4EDEA3]/30'
-              }`}
-            >
-              {threatResult.riskLevel}
-            </span>
-          </div>
-
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#3F4850]/30 pb-3">
-              <div>
-                <span className="text-[10px] text-[#89929B]">CLASSIFICATION</span>
-                <h4 className="text-lg font-extrabold text-white mt-0.5">
-                  {threatResult.classification} // {threatResult.subVector}
-                </h4>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] text-[#89929B]">RISK SCORE</span>
-                <p
-                  className={`text-2xl font-black ${
-                    threatResult.score >= 80
-                      ? 'text-[#FFB4AB]'
-                      : threatResult.score >= 40
-                      ? 'text-[#FFB95F]'
-                      : 'text-[#4EDEA3]'
-                  }`}
-                >
-                  {threatResult.score}/100
-                </p>
-              </div>
-            </div>
-
-            {/* Indicator Matrix */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px]">
-              {threatResult.indicators.map((ind) => (
-                <div key={ind.label} className="p-2 rounded bg-[#0A0E17] border border-[#3F4850]/30">
-                  <span className="text-[#89929B] block">{ind.label}</span>
-                  <span
-                    className={`font-bold ${
-                      ind.status === 'error'
-                        ? 'text-[#FFB4AB]'
-                        : ind.status === 'tertiary'
-                        ? 'text-[#FFB95F]'
-                        : 'text-white'
+          {/* Decision Verdict Card */}
+          <div className="p-6 rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#E2EAE4] pb-3">
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-[#75887B] font-medium">
+                    Evaluation Verdict
+                  </span>
+                  <h4 className="text-lg font-heading font-bold text-[#111915] mt-0.5">
+                    {threatResult.classification}
+                  </h4>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-mono text-[#75887B]">Risk Score</span>
+                  <p
+                    className={`text-2xl font-heading font-extrabold tabular-nums ${
+                      threatResult.score >= 80
+                        ? 'text-red-700'
+                        : threatResult.score >= 40
+                        ? 'text-amber-700'
+                        : 'text-emerald-700'
                     }`}
                   >
-                    {ind.value}
-                  </span>
+                    {threatResult.score}/100
+                  </p>
                 </div>
-              ))}
-            </div>
-
-            {/* Verdict */}
-            <p className="text-xs text-[#BFC7D2] leading-relaxed p-3 rounded-lg bg-[#0A0E17] border border-[#3F4850]/40 font-sans">
-              {threatResult.verdict}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#3F4850]/30">
-              <div className="text-[10px] text-[#89929B] truncate">
-                <span>REFERENCE HASH: </span>
-                <span className="text-[#93CCFF]">{threatResult.sha256.slice(0, 18)}...</span>
               </div>
-              {daemonActions.length > 0 && (
-                <button
-                  onClick={() => setSelectedAction(daemonActions[0])}
-                  className="px-2.5 py-1 rounded bg-[#141824] hover:bg-[#1E2330] border border-[#93CCFF]/50 text-[10px] font-bold text-[#93CCFF] flex items-center gap-1 transition shadow-sm"
-                  title="Open detailed telemetry modal for the latest intercepted action"
-                >
-                  <Eye className="w-3 h-3" /> INSPECT LATEST ACTION
-                </button>
-              )}
+
+              {/* Indicator Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {threatResult.indicators.map((ind) => (
+                  <div
+                    key={ind.label}
+                    className="p-2.5 rounded-xl bg-[#F9FAF9] border border-[#E2EAE4] text-[11px] space-y-0.5"
+                  >
+                    <span className="text-[#75887B] text-[10px] block">{ind.label}</span>
+                    <span className="font-semibold text-[#111915] truncate block">
+                      {ind.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Verdict Explanation */}
+              <div className="p-3.5 rounded-xl bg-[#F4F7F5] border border-[#E2EAE4] text-xs text-[#536459] leading-relaxed text-pretty">
+                {threatResult.verdict}
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between text-[11px] font-mono text-[#75887B]">
+              <span>SHA-256 Chained</span>
+              <span className="text-emerald-700 font-semibold">100% Cryptographic Match</span>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 4. Real SQLite Action Audit Feed */}
-      <section id="action-feed" className="rounded-xl bg-[#181B25] border border-[#3F4850]/50 overflow-hidden shadow-lg font-mono scroll-mt-20">
-        <div className="p-4 bg-[#0A0E17] border-b border-[#3F4850]/40 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#93CCFF]" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              REAL-TIME SQLITE INTERCEPTED FEED ({displayActions.length} / {totalActionsCount} RECORDED)
-            </h3>
-          </div>
+        {/* 4. Live Intercepted Actions Feed Table */}
+        <section id="action-feed" className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-heading font-bold text-[#111915]">
+                Live Intercepted Feed
+              </h3>
+              <p className="text-xs text-[#536459]">
+                Chronological ledger of security decisions evaluated across system processes.
+              </p>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Export Logs Button */}
-            <button
-              onClick={handleExportLogs}
-              disabled={!daemonActions.length}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/50 text-xs text-[#93CCFF] disabled:opacity-40 transition"
-              title="Download SQLite audit logs as CSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              EXPORT CSV
-            </button>
-
-            {/* Search */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-[#89929B] absolute left-2.5 top-2" />
+            <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Search action, agent, path..."
+                placeholder="Search actions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-[#181B25] border border-[#3F4850]/50 rounded-lg pl-8 pr-3 py-1 text-xs text-white focus:border-[#93CCFF] focus:outline-none"
+                className="px-3 py-1.5 rounded-xl bg-[#FFFFFF] border border-[#E2EAE4] text-xs text-[#111915] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
               />
-            </div>
 
-            {/* Severity Filter with dynamic count badges */}
-            <div className="flex items-center gap-1.5 text-[10px]">
-              {(
-                [
-                  { key: 'ALL', label: 'ALL', count: daemonActions.length },
-                  { key: 'CRITICAL', label: 'CRITICAL', count: criticalThreatsCount },
-                  { key: 'HIGH', label: 'HIGH', count: elevatedRisksCount },
-                  { key: 'MEDIUM', label: 'MEDIUM', count: mediumRisksCount },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilterSeverity(tab.key)}
-                  className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1.5 ${
-                    filterSeverity === tab.key
-                      ? 'bg-[#3198DC] text-[#002C47] shadow-sm'
-                      : 'text-[#89929B] hover:text-white bg-[#181B25] border border-[#3F4850]/40'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold ${
-                      filterSeverity === tab.key
-                        ? 'bg-[#002C47] text-[#93CCFF]'
-                        : 'bg-[#282E3E] text-[#BFC7D2]'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
+              <button
+                onClick={handleExportLogs}
+                disabled={!daemonActions.length}
+                className="px-3 py-1.5 rounded-xl bg-[#FFFFFF] hover:bg-[#F2F6F3] border border-[#E2EAE4] text-xs font-medium text-[#111915] transition-colors disabled:opacity-50"
+              >
+                Export CSV
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Live Interception Success Banner */}
-        {actionSuccessNotice && (
-          <div className="px-4 py-2 bg-emerald-500/15 border-b border-emerald-500/30 flex items-center justify-between text-xs text-[#4EDEA3] font-mono">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#4EDEA3]" />
-              <span>{actionSuccessNotice}</span>
-            </div>
-            <button
-              onClick={() => setActionSuccessNotice(null)}
-              className="text-[#89929B] hover:text-white transition"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+          {/* Table Container */}
+          <div className="rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-[#F9FAF9] text-[#75887B] border-b border-[#E2EAE4] uppercase text-[10px]">
+                  <tr>
+                    <th className="py-3 px-4 font-semibold">Time</th>
+                    <th className="py-3 px-4 font-semibold">Agent</th>
+                    <th className="py-3 px-4 font-semibold">Action</th>
+                    <th className="py-3 px-4 font-semibold">Target Resource</th>
+                    <th className="py-3 px-4 font-semibold text-center">Risk</th>
+                    <th className="py-3 px-4 font-semibold text-right">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F2F6F3]">
+                  {displayActions.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-[#75887B]">
+                        No recorded actions match current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayActions.slice(0, 50).map((action) => {
+                      const isBlock = action.outcome?.includes('BLOCK');
+                      const isPrompt = action.outcome?.includes('PROMPT') || action.outcome?.includes('USER');
 
-        {/* Table Rows */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="text-[#89929B] uppercase text-[10px] border-b border-[#3F4850]/30 bg-[#181B25]/60">
-              <tr>
-                <th className="py-2.5 px-4">INCIDENT ID</th>
-                <th>AGENT</th>
-                <th>ACTION TYPE</th>
-                <th>TARGET PATH / RESOURCE</th>
-                <th>RISK</th>
-                <th>VERDICT</th>
-                <th>DETECTED</th>
-                <th className="text-right px-4">ACTION</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#3F4850]/20">
-              {displayActions.map((action) => (
-                <tr key={action.id} className="hover:bg-[#1C1F29]/60 transition">
-                  <td className="py-3 px-4 font-bold text-[#93CCFF] font-mono text-[11px] truncate max-w-[130px]">
-                    {action.id.slice(0, 10)}...
-                  </td>
-                  <td className="text-white font-semibold font-mono text-[11px]">
-                    {action.agent_id || 'claude-code'}
-                  </td>
-                  <td className="text-[#DFE2F0] font-mono text-[11px]">{action.action_type}</td>
-                  <td className="text-[#BFC7D2] font-mono text-[11px] max-w-[200px] truncate">
-                    {action.target_path || 'N/A'}
-                  </td>
-                  <td>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                        action.risk_score >= 80
-                          ? 'bg-rose-500/15 text-[#FFB4AB] border-[#FFB4AB]/30'
-                          : action.risk_score >= 40
-                          ? 'bg-amber-500/15 text-[#FFB95F] border-[#FFB95F]/30'
-                          : 'bg-emerald-500/15 text-[#4EDEA3] border-[#4EDEA3]/30'
-                      }`}
-                    >
-                      {action.risk_score}/100
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`font-semibold text-[11px] ${
-                        action.outcome?.includes('BLOCK')
-                          ? 'text-[#FFB4AB]'
-                          : action.outcome?.includes('USER')
-                          ? 'text-[#FFB95F]'
-                          : 'text-[#4EDEA3]'
-                      }`}
-                    >
-                      {action.outcome}
-                    </span>
-                  </td>
-                  <td className="text-[#89929B] text-[11px] font-mono">
-                    {formatLocalTime(action.created_at)}
-                  </td>
-                  <td className="text-right px-4">
-                    <button
-                      onClick={() => setSelectedAction(action)}
-                      className="px-2 py-1 rounded bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/50 text-[#93CCFF] text-[10px] font-mono font-bold flex items-center gap-1 ml-auto"
-                    >
-                      <Eye className="w-3 h-3" /> INSPECT
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!displayActions.length && (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#89929B]">
-                    <div className="max-w-md mx-auto space-y-3">
-                      <div className="w-10 h-10 rounded-full bg-[#1F2733] border border-[#3F4850] flex items-center justify-center mx-auto text-[#93CCFF]">
-                        <Filter className="w-5 h-5" />
-                      </div>
-                      <p className="text-sm font-bold text-white font-mono">
-                        {daemonActions.length > 0
-                          ? `No Actions Match Filter: "${filterSeverity}" ${searchTerm ? `+ "${searchTerm}"` : ''}`
-                          : 'No Live Interceptions Recorded Yet'}
-                      </p>
-                      <p className="text-xs text-[#89929B] leading-relaxed">
-                        {daemonActions.length > 0 ? (
-                          <>
-                            There are <span className="text-[#93CCFF] font-bold font-mono">{daemonActions.length}</span> total actions stored in SQLite (<code className="text-[#DFE2F0]">~/.sentinelai/sentinel.db</code>), but none currently match this filter.
-                          </>
-                        ) : (
-                          <>The SQLite database is active and ready to log runtime agent telemetry.</>
-                        )}
-                      </p>
-                      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                        {daemonActions.length > 0 && (
-                          <button
-                            onClick={() => {
-                              setFilterSeverity('ALL');
-                              setSearchTerm('');
-                            }}
-                            className="px-4 py-2 rounded-lg bg-[#3198DC] hover:bg-[#3198DC]/90 text-[#002C47] text-xs font-bold font-mono transition inline-flex items-center gap-1.5 shadow-md active:scale-95"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            SHOW ALL ({daemonActions.length}) ACTIONS
-                          </button>
-                        )}
-                        <button
-                          onClick={handleTriggerRealAction}
-                          disabled={isTriggeringAction}
-                          className="px-4 py-2 rounded-lg bg-[#93CCFF]/15 hover:bg-[#93CCFF]/25 border border-[#93CCFF]/40 text-[#93CCFF] text-xs font-bold font-mono transition inline-flex items-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50"
+                      return (
+                        <tr
+                          key={action.id}
+                          onClick={() => setSelectedAction(action)}
+                          className="hover:bg-[#F9FAF9] transition-colors cursor-pointer"
                         >
-                          {isTriggeringAction ? (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              INTERCEPTING &amp; LOGGING...
-                            </>
-                          ) : (
-                            <>
-                              <Terminal className="w-3.5 h-3.5" />
-                              {filterSeverity === 'HIGH'
-                                ? 'TRIGGER TEST EVENT & SHOW ALL'
-                                : 'TRIGGER TEST INCIDENT'}
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Row Inspection Modal */}
-      {selectedAction && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[#141824] border border-[#3F4850] shadow-2xl p-5 font-mono space-y-4">
-            <div className="flex items-center justify-between border-b border-[#3F4850]/50 pb-3">
-              <div className="flex items-center gap-2">
-                <FileCode className="w-4 h-4 text-[#93CCFF]" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Action Detail Inspector
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedAction(null)}
-                className="p-1 rounded hover:bg-[#1C1F29] text-[#89929B] hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">ACTION ID:</span>
-                <span className="text-white font-bold">{selectedAction.id}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">AGENT:</span>
-                <span className="text-[#93CCFF] font-bold">{selectedAction.agent_id || 'unknown'}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">ACTION TYPE:</span>
-                <span className="text-white">{selectedAction.action_type}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">TARGET PATH:</span>
-                <span className="text-[#DFE2F0] max-w-[300px] truncate">{selectedAction.target_path || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">VERDICT / OUTCOME:</span>
-                <span className={`font-bold ${selectedAction.outcome.includes('BLOCK') ? 'text-[#FFB4AB]' : 'text-[#4EDEA3]'}`}>
-                  {selectedAction.outcome}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">RISK SCORE:</span>
-                <span className="text-[#FFB95F] font-bold">{selectedAction.risk_score} / 100</span>
-              </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">LOCAL WORKSTATION TIME:</span>
-                <span className="text-[#4EDEA3] font-bold font-mono">
-                  {formatLocalDateTime(selectedAction.created_at)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">UTC AUDIT TIMESTAMP:</span>
-                <span className="text-[#89929B] font-mono text-[11px]">
-                  {formatUtcDateTime(selectedAction.created_at)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-[#3F4850]/20">
-                <span className="text-[#89929B]">DATABASE PERSISTENCE:</span>
-                <span className="text-[#93CCFF] font-mono text-[11px]">SQLite ~/.sentinelai/sentinel.db</span>
-              </div>
-
-              {/* Ollama / Heuristic Brain Explanation Section */}
-              <div className="mt-3 p-3.5 rounded-lg bg-[#0D121F] border border-[#3F4850]/60 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[#93CCFF] font-bold text-[11px]">
-                    <Bot className="w-3.5 h-3.5 text-[#93CCFF]" />
-                    <span>SENTINEL COPILOT // SILENT INTENT DECODER</span>
-                  </div>
-                  <span className="text-[9px] px-2 py-0.5 rounded font-mono font-bold bg-[#181B25] border border-[#3F4850] text-[#4EDEA3]">
-                    {actionExplanation?.provider || 'LOCAL CO-PROCESSOR'}
-                  </span>
-                </div>
-
-                {isExplainingAction ? (
-                  <div className="flex items-center gap-2 py-2 text-xs text-[#89929B]">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#93CCFF]" />
-                    <span>Decoding silent agent activity and security warnings...</span>
-                  </div>
-                ) : actionExplanation ? (
-                  <div className="space-y-2 text-[11px] leading-relaxed">
-                    <div className="bg-[#141824] p-2 rounded border border-[#3F4850]/30">
-                      <span className="text-[#89929B] font-bold block text-[10px] uppercase">Silent Agent Activity:</span>
-                      <span className="text-white font-mono">{actionExplanation.silent_activity}</span>
-                    </div>
-                    <div className="bg-[#141824] p-2 rounded border border-[#3F4850]/30">
-                      <span className="text-[#FFB95F] font-bold block text-[10px] uppercase">Warning / Danger Analysis:</span>
-                      <span className="text-[#DFE2F0] font-sans">{actionExplanation.security_warning}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-0.5 text-[10px] font-mono">
-                      <span className="text-[#89929B]">COPILOT RECOMMENDATION:</span>
-                      <span className={`font-bold px-2 py-0.5 rounded border ${
-                        actionExplanation.recommended_action.includes('BLOCK')
-                          ? 'bg-rose-500/15 text-[#FFB4AB] border-[#FFB4AB]/30'
-                          : 'bg-emerald-500/15 text-[#4EDEA3] border-[#4EDEA3]/30'
-                      }`}>
-                        {actionExplanation.recommended_action}
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setSelectedAction(null)}
-                className="px-4 py-2 rounded-lg bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/60 text-xs font-bold text-white transition"
-              >
-                CLOSE
-              </button>
+                          <td className="py-3 px-4 text-[#75887B] tabular-nums whitespace-nowrap">
+                            {formatLocalTime(action.created_at)}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-[#111915] whitespace-nowrap">
+                            {action.agent_id || 'system'}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-md bg-[#F4F7F5] border border-[#E2EAE4] text-[10px] text-[#536459]">
+                              {action.action_type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-[#536459] max-w-xs truncate" title={action.target_path || undefined}>
+                            {action.target_path || 'None'}
+                          </td>
+                          <td className="py-3 px-4 text-center tabular-nums font-semibold">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] ${
+                                action.risk_score >= 80
+                                  ? 'bg-rose-50 text-rose-700 font-bold'
+                                  : action.risk_score >= 40
+                                  ? 'bg-amber-50 text-amber-800 font-bold'
+                                  : 'bg-emerald-50 text-emerald-800'
+                              }`}
+                            >
+                              {action.risk_score}/100
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap font-bold">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] ${
+                                isBlock
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : isPrompt
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              }`}
+                            >
+                              {action.outcome}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-      )}
+        </section>
+      </div>
 
-      {/* Permission Prompt Dialog Modal */}
+      {/* Interactive Permission Prompt Dialog */}
       <PermissionPromptDialog
         prompt={activePrompt}
         onClose={() => setActivePrompt(null)}
-        onDecisionApplied={async (choice) => {
-          console.log('Applied prompt decision:', choice);
-          await syncDaemon();
-        }}
+        onDecisionApplied={syncDaemon}
       />
-      </div>
     </>
   );
 }

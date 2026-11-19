@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldAlertSvg,
   ShieldCheckSvg,
-  SentinelLogoSvg,
 } from '@/components/icons/SvgIcons';
 import { respondToPrompt } from '@/lib/daemon';
 
@@ -90,30 +89,30 @@ export default function PermissionPromptDialog({
   const getRiskColor = (cat: string) => {
     switch (cat) {
       case 'CRITICAL':
-        return 'text-red-400 border-red-500/30 bg-red-500/10';
+        return 'text-red-700 border-red-200 bg-red-50';
       case 'HIGH':
-        return 'text-amber-400 border-amber-500/30 bg-amber-500/10';
+        return 'text-amber-800 border-amber-200 bg-amber-50';
       case 'MEDIUM':
-        return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
+        return 'text-yellow-800 border-yellow-200 bg-yellow-50';
       default:
-        return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
+        return 'text-emerald-700 border-emerald-200 bg-emerald-50';
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 font-mono select-none">
-      <div className="relative w-full max-w-lg rounded-xl bg-[#0D1017] border border-red-500/30 ring-1 ring-red-500/20 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 font-mono select-none">
+      <div className="relative w-full max-w-lg rounded-2xl bg-[#FFFFFF] border border-[#E2EAE4] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Header Bar */}
-        <div className="bg-[#131722] px-5 py-3.5 border-b border-[#1E2536] flex items-center justify-between">
+        <div className="bg-[#F9FAF9] px-6 py-4 border-b border-[#E2EAE4] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="p-1.5 rounded-lg bg-red-500/15 text-red-400">
+            <span className="p-2 rounded-xl bg-red-50 text-red-700 border border-red-200">
               <ShieldAlertSvg className="size-5" />
             </span>
             <div>
-              <h3 className="text-sm font-heading font-bold text-white tracking-wide text-balance">
+              <h3 className="text-sm font-heading font-bold text-[#111915] tracking-tight text-balance">
                 Human confirmation required
               </h3>
-              <p className="text-[11px] text-[#8A94A6]">
+              <p className="text-[11px] text-[#536459]">
                 SentinelAI runtime security interceptor
               </p>
             </div>
@@ -121,16 +120,16 @@ export default function PermissionPromptDialog({
 
           {/* 30s Countdown Timer & Close Button */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#08090C] border border-[#1E2536] text-xs tabular-nums">
-              <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className={timeLeft <= 10 ? 'text-red-400 font-bold' : 'text-slate-200'}>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFFFFF] border border-[#E2EAE4] text-xs tabular-nums shadow-xs">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className={timeLeft <= 10 ? 'text-red-700 font-bold' : 'text-[#111915] font-medium'}>
                 {timeLeft}s auto-deny
               </span>
             </div>
             <button
               onClick={onClose}
               aria-label="Close dialog"
-              className="size-7 rounded-md bg-[#08090C] hover:bg-[#1E2536] text-[#8A94A6] hover:text-white border border-[#1E2536] flex items-center justify-center transition-colors text-xs"
+              className="size-7 rounded-lg bg-[#FFFFFF] hover:bg-[#F2F6F3] text-[#536459] hover:text-[#111915] border border-[#E2EAE4] flex items-center justify-center transition-colors text-xs"
             >
               ✕
             </button>
@@ -138,56 +137,56 @@ export default function PermissionPromptDialog({
         </div>
 
         {/* Content Body */}
-        <div className="p-5 space-y-4 text-xs">
+        <div className="p-6 space-y-4 text-xs">
           {/* Action Details Grid */}
-          <div className="p-3.5 rounded-lg bg-[#131722] border border-[#1E2536] space-y-2">
+          <div className="p-4 rounded-xl bg-[#F9FAF9] border border-[#E2EAE4] space-y-2.5">
             <div className="flex justify-between items-center">
-              <span className="text-[#8A94A6]">Requesting agent:</span>
-              <span className="text-[#00E5FF] font-bold">{prompt.agentId}</span>
+              <span className="text-[#75887B]">Requesting agent:</span>
+              <span className="text-[#059669] font-bold">{prompt.agentId}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[#8A94A6]">Action type:</span>
-              <span className="text-white font-bold px-2 py-0.5 rounded bg-[#08090C] border border-[#1E2536]">
+              <span className="text-[#75887B]">Action type:</span>
+              <span className="text-[#111915] font-semibold px-2 py-0.5 rounded bg-[#FFFFFF] border border-[#E2EAE4]">
                 {prompt.actionType}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[#8A94A6]">Target resource:</span>
-              <span className="text-slate-200 font-semibold max-w-[280px] truncate">
+              <span className="text-[#75887B]">Target resource:</span>
+              <span className="text-[#111915] font-medium max-w-[280px] truncate" title={prompt.targetPath}>
                 {prompt.targetPath}
               </span>
             </div>
           </div>
 
           {/* Risk Level & Context */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-[#131722] border border-[#1E2536]">
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#FFFFFF] border border-[#E2EAE4]">
             <div className="flex items-center gap-2">
-              <span className="text-[#8A94A6]">Risk severity:</span>
-              <span className={`px-2 py-0.5 rounded border text-[11px] font-bold ${getRiskColor(prompt.riskCategory)}`}>
+              <span className="text-[#75887B]">Risk severity:</span>
+              <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${getRiskColor(prompt.riskCategory)}`}>
                 {prompt.riskCategory} ({prompt.riskScore}/100)
               </span>
             </div>
-            <span className="text-[10px] text-[#8A94A6]">Code: {prompt.reasonCode}</span>
+            <span className="text-[10px] text-[#75887B]">Code: {prompt.reasonCode}</span>
           </div>
 
           {/* Explanation */}
-          <div className="p-3 rounded-lg bg-[#131722] border border-[#1E2536] space-y-1">
-            <span className="text-[10px] uppercase font-bold text-[#8A94A6]">Explanation</span>
-            <p className="text-slate-300 text-pretty leading-relaxed">
+          <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E2EAE4] space-y-1">
+            <span className="text-[10px] uppercase font-bold text-[#75887B]">Explanation</span>
+            <p className="text-[#536459] text-pretty leading-relaxed">
               {prompt.explanation}
             </p>
           </div>
 
           {/* Visual 30s Countdown Progress Bar */}
           <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-[10px] text-[#8A94A6]">
+            <div className="flex justify-between text-[10px] text-[#75887B]">
               <span>Timeout countdown</span>
-              <span className="tabular-nums font-bold text-white">{timeLeft}s remaining</span>
+              <span className="tabular-nums font-bold text-[#111915]">{timeLeft}s remaining</span>
             </div>
-            <div className="h-1.5 w-full bg-[#1E2536] rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-[#E2EAE4] rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-1000 ease-linear ${
-                  timeLeft <= 10 ? 'bg-red-500' : 'bg-[#00E5FF]'
+                  timeLeft <= 10 ? 'bg-red-500' : 'bg-[#059669]'
                 }`}
                 style={{ width: `${(timeLeft / 30) * 100}%` }}
               />
@@ -199,7 +198,7 @@ export default function PermissionPromptDialog({
             <button
               onClick={() => handleDecision('BLOCK')}
               disabled={submitting}
-              className="flex-1 py-2.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-bold transition-colors text-xs flex items-center justify-center gap-2 focus:ring-2 focus:ring-red-500/50"
+              className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors text-xs flex items-center justify-center gap-2 shadow-xs"
             >
               <ShieldAlertSvg className="size-4" />
               <span>Deny action (Esc / Enter)</span>
@@ -208,9 +207,9 @@ export default function PermissionPromptDialog({
             <button
               onClick={() => handleDecision('ALLOW')}
               disabled={submitting}
-              className="flex-1 py-2.5 rounded-lg bg-[#00E5FF]/10 hover:bg-[#00E5FF]/20 border border-[#00E5FF]/40 text-[#00E5FF] font-bold transition-colors text-xs flex items-center justify-center gap-2 focus:ring-2 focus:ring-[#00E5FF]/50"
+              className="flex-1 py-3 rounded-xl bg-[#F4F7F5] hover:bg-[#EAF0EB] border border-[#E2EAE4] text-[#111915] font-medium transition-colors text-xs flex items-center justify-center gap-2"
             >
-              <ShieldCheckSvg className="size-4" />
+              <ShieldCheckSvg className="size-4 text-[#059669]" />
               <span>Allow (Ctrl + A)</span>
             </button>
           </div>
