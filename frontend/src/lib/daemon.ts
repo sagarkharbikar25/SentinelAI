@@ -40,6 +40,14 @@ export type DaemonAlert = {
   created_at: string;
 };
 
+export type VerifyLogResult = {
+  valid: boolean;
+  count: number;
+  head_hash?: string;
+  tampered_row_id?: string;
+  message: string;
+};
+
 const daemonUrl = process.env.NEXT_PUBLIC_DAEMON_URL ?? 'http://127.0.0.1:8765';
 
 async function daemonFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -133,6 +141,21 @@ export function respondToPrompt(actionId: string, userChoice: 'ALLOW' | 'BLOCK')
   });
 }
 
+export function getPendingPrompts() {
+  return daemonFetch<{ pending_action_ids: string[]; count: number }>('/daemon/prompts/pending').catch(() => ({
+    pending_action_ids: [],
+    count: 0,
+  }));
+}
+
+export function verifyLog() {
+  return daemonFetch<VerifyLogResult>('/daemon/verify-log').catch((err) => ({
+    valid: false,
+    count: 0,
+    message: `Verification endpoint unreachable: ${err.message}`,
+  }));
+}
+
 export type ActionExplanation = {
   provider: string;
   model_name: string;
@@ -163,6 +186,3 @@ export function explainAction(input: {
     is_llm_powered: false,
   }));
 }
-
-
-
