@@ -2,7 +2,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Shield, Bell, Terminal, Activity, Clock, CheckCircle2, AlertTriangle, X, ExternalLink } from 'lucide-react';
+import Image from 'next/image';
+import {
+  SentinelLogoSvg,
+  ActivitySvg,
+  ShieldCheckSvg,
+  ShieldAlertSvg,
+} from '@/components/icons/SvgIcons';
 import { getDaemonStatus, getAlerts, markAlertRead, DaemonStatus, DaemonAlert } from '@/lib/daemon';
 
 export default function Navbar() {
@@ -63,147 +69,114 @@ export default function Navbar() {
   };
 
   return (
-    <header className="h-16 border-b border-[#3F4850]/40 bg-[#0A0E17]/95 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40 shadow-xl select-none">
+    <header className="h-16 border-b border-[#1E2536] bg-[#0D1017] px-6 flex items-center justify-between sticky top-0 z-40 select-none">
       {/* Brand & Breadcrumb */}
-      <Link href="/" className="flex items-center gap-4 hover:opacity-95 transition">
-        {/* Authentic SOC Emblem Icon */}
-        <div className="w-10 h-10 rounded-lg bg-[#181B25] border border-[#93CCFF]/40 flex items-center justify-center text-[#93CCFF] shadow-md shadow-[#93CCFF]/10">
-          <Shield className="w-5 h-5 text-[#93CCFF]" />
+      <Link href="/" className="flex items-center gap-3.5 hover:opacity-95 transition-opacity duration-150">
+        <div className="size-9 rounded-lg bg-[#131722] border border-[#00E5FF]/30 flex items-center justify-center p-1 overflow-hidden shadow-xs">
+          <Image
+            src="/logo.png"
+            alt="SentinelAI Logo"
+            width={32}
+            height={32}
+            className="object-cover rounded"
+            priority
+          />
         </div>
         <div>
-          <div className="flex items-center gap-2 font-mono text-xs text-[#89929B]">
-            <Terminal className="w-3.5 h-3.5 text-[#93CCFF]" />
-            <span className="text-white font-bold tracking-wider">SENTINEL AI</span>
+          <div className="flex items-center gap-2 font-mono text-xs text-[#8A94A6]">
+            <span className="text-white font-bold tracking-wide font-heading">SentinelAI</span>
             <span>/</span>
-            <span className="text-[#93CCFF] font-semibold tracking-wide">SOC COMMAND &amp; GOVERNANCE</span>
+            <span className="text-[#00E5FF] font-medium tracking-wide">SOC Command &amp; Governance</span>
           </div>
-          <p className="text-[11px] text-[#BFC7D2] font-medium mt-0.5">
-            National Threat Detection &amp; Autonomous Agent Runtime Interceptor
+          <p className="text-[11px] text-[#8A94A6] font-medium mt-0.5">
+            Autonomous agent permission broker &amp; audit plane
           </p>
         </div>
       </Link>
 
-      {/* Right Controls: Telemetry Clock, Daemon Status, Notification Bell */}
-      <div className="flex items-center gap-3.5 font-mono text-xs">
-        {/* Clock */}
-        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181B25] border border-[#3F4850]/40 text-[#DFE2F0]">
-          <Clock className="w-3.5 h-3.5 text-[#93CCFF]" />
-          <span className="text-[11px] font-semibold">{time}</span>
+      {/* Real-time Status Center */}
+      <div className="flex items-center gap-4">
+        {/* Real-time UTC/IST Clock */}
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#131722] border border-[#1E2536] text-xs font-mono tabular-nums text-[#8A94A6]">
+          <ActivitySvg className="size-3.5 text-[#00E5FF]" />
+          <span className="text-white font-bold">{time}</span>
         </div>
 
-        {/* Dynamic Daemon Status Pill */}
-        <button
-          onClick={fetchTelemetry}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-bold shadow-sm transition ${
-            daemonStatus?.running
-              ? 'bg-[#181B25] border-[#4EDEA3]/30 text-[#4EDEA3] hover:border-[#4EDEA3]/60'
-              : 'bg-red-500/10 border-red-500/40 text-[#FF5449] hover:bg-red-500/20'
-          }`}
-          title="Click to re-ping daemon"
-        >
-          <span
-            className={`w-2 h-2 rounded-full ${
-              daemonStatus?.running ? 'bg-[#4EDEA3] animate-pulse shadow-sm shadow-[#4EDEA3]' : 'bg-[#FF5449]'
-            }`}
-          />
-          {daemonStatus?.running ? 'DAEMON: ONLINE (:8765)' : 'DAEMON: OFFLINE (RETRY)'}
-        </button>
+        {/* Security Engine State Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#131722] border border-[#1E2536] text-xs font-mono">
+          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[#8A94A6]">Mode:</span>
+          <span className="text-[#00E5FF] font-bold">STRICT_INTERCEPT</span>
+        </div>
 
-        {/* Interactive Notification Bell with Badge & Dropdown */}
+        {/* Daemon Connection Pulse */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#131722] border border-[#1E2536] text-xs font-mono">
+          <ShieldCheckSvg className={`size-3.5 ${daemonStatus?.running ? 'text-emerald-400' : 'text-red-400'}`} />
+          <span className="text-[#8A94A6]">Daemon:</span>
+          <span className={`font-bold ${daemonStatus?.running ? 'text-emerald-400' : 'text-red-400'}`}>
+            {daemonStatus?.running ? 'ONLINE' : 'STANDBY'}
+          </span>
+        </div>
+
+        {/* Security Alerts Dropdown Trigger */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowAlertsDropdown((prev) => !prev)}
-            className={`p-2 rounded-lg border transition relative ${
-              showAlertsDropdown
-                ? 'bg-[#181B25] text-white border-[#93CCFF]/50'
-                : 'text-[#89929B] hover:text-white hover:bg-[#181B25] border-transparent hover:border-[#3F4850]/40'
-            }`}
-            title="View Security Alerts"
+            aria-label="Security alerts"
+            className="relative p-2 rounded-lg bg-[#131722] hover:bg-[#1A202E] border border-[#1E2536] text-[#8A94A6] hover:text-white transition-colors duration-150"
           >
-            <Bell className="w-4 h-4" />
+            <ShieldAlertSvg className="size-4" />
             {alerts.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF5449] text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
-                {alerts.length > 9 ? '9+' : alerts.length}
+              <span className="absolute -top-1 -right-1 size-4 bg-red-500 text-white font-mono text-[9px] font-bold rounded-full flex items-center justify-center">
+                {alerts.length}
               </span>
             )}
           </button>
 
-          {/* Alerts Dropdown Modal */}
+          {/* Alerts Popover Menu */}
           {showAlertsDropdown && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-[#141824] border border-[#3F4850] shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="p-3 bg-[#0A0E17] border-b border-[#3F4850]/40 flex items-center justify-between font-mono">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-[#FFB95F]" />
-                  <span className="text-xs font-bold text-white uppercase tracking-wider">
-                    Unread Alerts ({alerts.length})
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowAlertsDropdown(false)}
-                  className="p-1 rounded hover:bg-[#1C1F29] text-[#89929B] hover:text-white"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            <div className="absolute right-0 mt-2 w-80 rounded-xl bg-[#131722] border border-[#1E2536] shadow-2xl z-50 p-3 space-y-2 font-mono text-xs animate-in fade-in zoom-in-95 duration-100">
+              <div className="flex items-center justify-between pb-2 border-b border-[#1E2536]">
+                <span className="text-white font-bold flex items-center gap-1.5">
+                  <ShieldAlertSvg className="size-3.5 text-amber-400" />
+                  Security Alerts ({alerts.length})
+                </span>
+                <span className="text-[10px] text-[#8A94A6]">Live feed</span>
               </div>
 
-              <div className="max-h-72 overflow-y-auto divide-y divide-[#3F4850]/30 font-sans">
+              <div className="max-h-64 overflow-y-auto space-y-2">
                 {alerts.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#89929B] space-y-1">
-                    <CheckCircle2 className="w-6 h-6 text-[#4EDEA3] mx-auto opacity-70" />
-                    <p className="font-semibold text-white">All Clear</p>
-                    <p>No active unread alerts from the daemon.</p>
+                  <div className="py-6 text-center text-[#8A94A6] text-xs">
+                    No active security alerts. System normal.
                   </div>
                 ) : (
                   alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className="p-3 hover:bg-[#181B25]/80 transition flex items-start justify-between gap-2.5"
+                      className="p-2.5 rounded-lg bg-[#0D1017] border border-[#1E2536] space-y-1 hover:border-[#333D52] transition-colors"
                     >
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
-                          <span
-                            className={`px-1.5 py-0.5 rounded font-bold border ${
-                              alert.severity === 'CRITICAL' || alert.severity === 'HIGH'
-                                ? 'bg-red-500/15 text-[#FF5449] border-red-500/30'
-                                : 'bg-amber-500/15 text-[#FFB95F] border-amber-500/30'
-                            }`}
-                          >
-                            {alert.severity}
-                          </span>
-                          <span className="text-[#89929B]">
-                            {new Date(alert.created_at).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <p className="font-semibold text-white leading-snug">{alert.title}</p>
-                        <p className="text-[#BFC7D2] text-[11px] leading-relaxed line-clamp-2">
-                          {alert.description}
-                        </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-bold text-white text-[11px] leading-tight">
+                          {alert.title}
+                        </span>
+                        <button
+                          onClick={(e) => handleDismissAlert(alert.id, e)}
+                          aria-label="Dismiss alert"
+                          className="text-[#8A94A6] hover:text-white text-[10px]"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => handleDismissAlert(alert.id, e)}
-                        className="text-[10px] text-[#93CCFF] hover:underline font-mono whitespace-nowrap self-start mt-1"
-                      >
-                        Dismiss
-                      </button>
+                      <p className="text-[10px] text-[#8A94A6] line-clamp-2">
+                        {alert.description}
+                      </p>
+                      <div className="flex items-center justify-between text-[9px] text-[#8A94A6] pt-1">
+                        <span className="text-red-400 font-bold">{alert.severity}</span>
+                        <span>{new Date(alert.created_at).toLocaleTimeString()}</span>
+                      </div>
                     </div>
                   ))
                 )}
-              </div>
-
-              <div className="p-2 bg-[#0A0E17] border-t border-[#3F4850]/40 flex justify-between items-center text-xs font-mono">
-                <Link
-                  href="/security"
-                  onClick={() => setShowAlertsDropdown(false)}
-                  className="text-[11px] text-[#93CCFF] hover:underline flex items-center gap-1"
-                >
-                  Open Threat Center <ExternalLink className="w-3 h-3" />
-                </Link>
-                <button
-                  onClick={fetchTelemetry}
-                  className="text-[11px] text-[#89929B] hover:text-white"
-                >
-                  Refresh
-                </button>
               </div>
             </div>
           )}

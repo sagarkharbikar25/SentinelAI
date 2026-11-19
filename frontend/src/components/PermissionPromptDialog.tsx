@@ -2,18 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  AlertTriangle,
-  ShieldAlert,
-  ShieldCheck,
-  Clock,
-  HardDrive,
-  FileCode,
-  RotateCcw,
-  CheckCircle2,
-  XCircle,
-  Terminal,
-  X,
-} from 'lucide-react';
+  ShieldAlertSvg,
+  ShieldCheckSvg,
+  SentinelLogoSvg,
+} from '@/components/icons/SvgIcons';
 import { respondToPrompt } from '@/lib/daemon';
 
 export interface PromptAction {
@@ -98,49 +90,49 @@ export default function PermissionPromptDialog({
   const getRiskColor = (cat: string) => {
     switch (cat) {
       case 'CRITICAL':
-        return 'text-[#FF5449] border-red-500/40 bg-red-500/10';
+        return 'text-red-400 border-red-500/30 bg-red-500/10';
       case 'HIGH':
-        return 'text-[#FFB95F] border-amber-500/40 bg-amber-500/10';
+        return 'text-amber-400 border-amber-500/30 bg-amber-500/10';
       case 'MEDIUM':
-        return 'text-yellow-300 border-yellow-500/40 bg-yellow-500/10';
+        return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
       default:
-        return 'text-[#4EDEA3] border-emerald-500/40 bg-emerald-500/10';
+        return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-mono select-none">
-      <div className="relative w-full max-w-lg rounded-2xl bg-[#0E131F] border-2 border-[#FF5449]/60 shadow-[0_0_50px_rgba(255,84,73,0.25)] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 font-mono select-none">
+      <div className="relative w-full max-w-lg rounded-xl bg-[#0D1017] border border-red-500/30 ring-1 ring-red-500/20 shadow-2xl overflow-hidden">
         {/* Header Bar */}
-        <div className="bg-[#181B25] px-5 py-3.5 border-b border-[#3F4850]/50 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="p-1.5 rounded-lg bg-red-500/20 text-[#FF5449] animate-pulse">
-              <AlertTriangle className="w-5 h-5" />
+        <div className="bg-[#131722] px-5 py-3.5 border-b border-[#1E2536] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="p-1.5 rounded-lg bg-red-500/15 text-red-400">
+              <ShieldAlertSvg className="size-5" />
             </span>
             <div>
-              <h3 className="text-sm font-black text-white tracking-wide uppercase">
-                HUMAN CONFIRMATION REQUIRED
+              <h3 className="text-sm font-heading font-bold text-white tracking-wide text-balance">
+                Human confirmation required
               </h3>
-              <p className="text-[10px] text-[#89929B]">
-                MEMBER 1 RUNTIME INTERCEPTOR MODAL
+              <p className="text-[11px] text-[#8A94A6]">
+                SentinelAI runtime security interceptor
               </p>
             </div>
           </div>
 
           {/* 30s Countdown Timer & Close Button */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0A0E17] border border-[#3F4850]/60 text-xs">
-              <Clock className="w-3.5 h-3.5 text-[#FFB95F]" />
-              <span className={timeLeft <= 10 ? 'text-[#FF5449] font-bold animate-ping' : 'text-[#DFE2F0]'}>
-                {timeLeft}s AUTO-BLOCK
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#08090C] border border-[#1E2536] text-xs tabular-nums">
+              <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className={timeLeft <= 10 ? 'text-red-400 font-bold' : 'text-slate-200'}>
+                {timeLeft}s auto-deny
               </span>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-[#0A0E17] hover:bg-[#1C1F29] text-[#89929B] hover:text-white border border-[#3F4850]/60 transition"
-              title="Close Dialog"
+              aria-label="Close dialog"
+              className="size-7 rounded-md bg-[#08090C] hover:bg-[#1E2536] text-[#8A94A6] hover:text-white border border-[#1E2536] flex items-center justify-center transition-colors text-xs"
             >
-              <X className="w-4 h-4" />
+              ✕
             </button>
           </div>
         </div>
@@ -148,100 +140,80 @@ export default function PermissionPromptDialog({
         {/* Content Body */}
         <div className="p-5 space-y-4 text-xs">
           {/* Action Details Grid */}
-          <div className="p-3.5 rounded-xl bg-[#141824] border border-[#3F4850]/40 space-y-2">
+          <div className="p-3.5 rounded-lg bg-[#131722] border border-[#1E2536] space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-[#89929B]">REQUESTING AGENT:</span>
-              <span className="text-[#93CCFF] font-bold">{prompt.agentId}</span>
+              <span className="text-[#8A94A6]">Requesting agent:</span>
+              <span className="text-[#00E5FF] font-bold">{prompt.agentId}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[#89929B]">ACTION TYPE:</span>
-              <span className="text-white font-bold px-2 py-0.5 rounded bg-black/40 border border-white/10">
+              <span className="text-[#8A94A6]">Action type:</span>
+              <span className="text-white font-bold px-2 py-0.5 rounded bg-[#08090C] border border-[#1E2536]">
                 {prompt.actionType}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[#89929B]">TARGET RESOURCE:</span>
-              <span className="text-[#DFE2F0] font-semibold max-w-[280px] truncate">
+              <span className="text-[#8A94A6]">Target resource:</span>
+              <span className="text-slate-200 font-semibold max-w-[280px] truncate">
                 {prompt.targetPath}
               </span>
             </div>
           </div>
 
           {/* Risk Level & Context */}
-          <div className="p-3.5 rounded-xl bg-[#141824] border border-[#3F4850]/40 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[#89929B]">RISK ASSESSMENT:</span>
-              <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-black border ${getRiskColor(prompt.riskCategory)}`}>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#131722] border border-[#1E2536]">
+            <div className="flex items-center gap-2">
+              <span className="text-[#8A94A6]">Risk severity:</span>
+              <span className={`px-2 py-0.5 rounded border text-[11px] font-bold ${getRiskColor(prompt.riskCategory)}`}>
                 {prompt.riskCategory} ({prompt.riskScore}/100)
               </span>
             </div>
-
-            {/* Risk bar */}
-            <div className="w-full bg-[#0A0E17] h-2 rounded-full overflow-hidden border border-[#3F4850]/40">
-              <div
-                className={`h-full transition-all ${
-                  prompt.riskScore > 75
-                    ? 'bg-[#FF5449]'
-                    : prompt.riskScore > 40
-                    ? 'bg-[#FFB95F]'
-                    : 'bg-[#4EDEA3]'
-                }`}
-                style={{ width: `${Math.min(100, Math.max(5, prompt.riskScore))}%` }}
-              ></div>
-            </div>
-
-            <div className="space-y-1 text-[11px] text-[#BFC7D2] pt-1">
-              <div className="flex items-center gap-1.5">
-                <FileCode className="w-3.5 h-3.5 text-[#93CCFF]" />
-                <span>Status: {prompt.fileContext?.isGitTracked ? 'Git Tracked File' : 'Untracked / Sensitive Boundary'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <HardDrive className="w-3.5 h-3.5 text-[#4EDEA3]" />
-                <span className="text-[#4EDEA3]">Pre-action snapshot saved to Vault ✓</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <RotateCcw className="w-3.5 h-3.5 text-[#93CCFF]" />
-                <span>Session checkpoint: One-click undo available</span>
-              </div>
-            </div>
+            <span className="text-[10px] text-[#8A94A6]">Code: {prompt.reasonCode}</span>
           </div>
 
           {/* Explanation */}
-          <div className="p-3 rounded-lg bg-[#0A0E17] border border-[#3F4850]/40">
-            <p className="text-[10px] text-[#89929B] uppercase font-bold mb-1">
-              EXPLANATION // {prompt.reasonCode}
-            </p>
-            <p className="text-[#DFE2F0] text-[11px] leading-relaxed">
+          <div className="p-3 rounded-lg bg-[#131722] border border-[#1E2536] space-y-1">
+            <span className="text-[10px] uppercase font-bold text-[#8A94A6]">Explanation</span>
+            <p className="text-slate-300 text-pretty leading-relaxed">
               {prompt.explanation}
             </p>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="bg-[#181B25] p-4 border-t border-[#3F4850]/50 grid grid-cols-3 gap-2.5">
-          <button
-            onClick={() => handleDecision('BLOCK')}
-            disabled={submitting}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-[#FF5449] border border-red-500/50 font-bold text-xs transition shadow-md"
-          >
-            <XCircle className="w-4 h-4" /> BLOCK
-          </button>
+          {/* Visual 30s Countdown Progress Bar */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between text-[10px] text-[#8A94A6]">
+              <span>Timeout countdown</span>
+              <span className="tabular-nums font-bold text-white">{timeLeft}s remaining</span>
+            </div>
+            <div className="h-1.5 w-full bg-[#1E2536] rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-1000 ease-linear ${
+                  timeLeft <= 10 ? 'bg-red-500' : 'bg-[#00E5FF]'
+                }`}
+                style={{ width: `${(timeLeft / 30) * 100}%` }}
+              />
+            </div>
+          </div>
 
-          <button
-            onClick={() => handleDecision('ALLOW')}
-            disabled={submitting}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-[#141824] hover:bg-[#1E2330] text-[#DFE2F0] border border-[#3F4850]/60 font-semibold text-xs transition"
-          >
-            <CheckCircle2 className="w-4 h-4 text-[#93CCFF]" /> ALLOW ONCE
-          </button>
+          {/* Decision Buttons with Fail-Closed Emphasis */}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={() => handleDecision('BLOCK')}
+              disabled={submitting}
+              className="flex-1 py-2.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-bold transition-colors text-xs flex items-center justify-center gap-2 focus:ring-2 focus:ring-red-500/50"
+            >
+              <ShieldAlertSvg className="size-4" />
+              <span>Deny action (Esc / Enter)</span>
+            </button>
 
-          <button
-            onClick={() => handleDecision('ALLOW')}
-            disabled={submitting}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-[#4EDEA3] border border-[#4EDEA3]/50 font-bold text-xs transition shadow-md"
-          >
-            <ShieldCheck className="w-4 h-4" /> ALLOW SESSION
-          </button>
+            <button
+              onClick={() => handleDecision('ALLOW')}
+              disabled={submitting}
+              className="flex-1 py-2.5 rounded-lg bg-[#00E5FF]/10 hover:bg-[#00E5FF]/20 border border-[#00E5FF]/40 text-[#00E5FF] font-bold transition-colors text-xs flex items-center justify-center gap-2 focus:ring-2 focus:ring-[#00E5FF]/50"
+            >
+              <ShieldCheckSvg className="size-4" />
+              <span>Allow (Ctrl + A)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

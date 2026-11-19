@@ -2,17 +2,18 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
-  Home,
-  Archive,
-  FileText,
-  FlaskConical,
-  Settings,
-  ShieldCheck,
-  Radio,
-  Zap,
-} from 'lucide-react';
+  SentinelLogoSvg,
+  HomeSvg,
+  VaultSvg,
+  AuditSvg,
+  LabSvg,
+  SettingsSvg,
+  ShieldCheckSvg,
+  ActivitySvg,
+} from '@/components/icons/SvgIcons';
 import { getDaemonStatus, DaemonStatus } from '@/lib/daemon';
 
 interface NavItem {
@@ -27,30 +28,30 @@ const mainNavItems: NavItem[] = [
   {
     name: 'Home',
     href: '/',
-    icon: Home,
-    badge: 'LIVE',
-    badgeColor: 'bg-emerald-500/10 text-[#4EDEA3] border-[#4EDEA3]/30',
+    icon: HomeSvg,
+    badge: 'Live',
+    badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   },
   {
-    name: 'Backup Vault',
+    name: 'Backup vault',
     href: '/vault',
-    icon: Archive,
-    badge: 'TIME-MACHINE',
-    badgeColor: 'bg-blue-500/10 text-[#93CCFF] border-[#93CCFF]/30',
+    icon: VaultSvg,
+    badge: 'Vault',
+    badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
   },
   {
-    name: 'Log & Audit',
+    name: 'Log & audit',
     href: '/audit-logs',
-    icon: FileText,
-    badge: 'IMMUTABLE',
-    badgeColor: 'bg-purple-500/10 text-purple-300 border-purple-500/30',
+    icon: AuditSvg,
+    badge: 'Chained',
+    badgeColor: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
   },
   {
-    name: 'Test Lab',
+    name: 'Test lab',
     href: '/lab',
-    icon: FlaskConical,
-    badge: 'CHAOS VM',
-    badgeColor: 'bg-amber-500/10 text-[#FFB95F] border-[#FFB95F]/30',
+    icon: LabSvg,
+    badge: 'Chaos VM',
+    badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   },
 ];
 
@@ -73,49 +74,68 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="w-64 border-r border-[#3F4850]/40 bg-[#0E121B] flex flex-col justify-between shrink-0 select-none shadow-2xl relative z-30">
+    <aside className="w-64 border-r border-[#1E2536] bg-[#0D1017] flex flex-col justify-between shrink-0 select-none relative z-30">
       {/* Top Header / App Title */}
       <div>
-        <div className="h-16 flex items-center px-6 border-b border-[#3F4850]/30 gap-3 bg-[#0A0E17]/60">
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-[#93CCFF]/20 to-[#93CCFF]/5 border border-[#93CCFF]/40 flex items-center justify-center text-[#93CCFF] shadow-inner">
-            <ShieldCheck className="w-5 h-5" />
+        <div className="h-16 flex items-center px-5 border-b border-[#1E2536] gap-3 bg-[#08090C]/80">
+          <div className="relative size-9 rounded-lg bg-[#131722] border border-[#00E5FF]/30 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
+            <Image
+              src="/logo.png"
+              alt="SentinelAI Logo"
+              width={36}
+              height={36}
+              className="object-cover rounded-md"
+              priority
+            />
           </div>
           <div>
-            <h1 className="text-sm font-semibold tracking-wider text-[#DFE2F0] font-mono">
-              SENTINEL<span className="text-[#93CCFF]">.AI</span>
-            </h1>
-            <p className="text-[10px] text-[#A9B4C0] font-mono tracking-tight">AGENT GUARD ENGINE</p>
+            <div className="flex items-center gap-1.5">
+              <span className="font-heading font-extrabold text-sm tracking-wide text-white">
+                SENTINEL<span className="text-[#00E5FF]">AI</span>
+              </span>
+              <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-[#131722] text-[#8A94A6] border border-[#1E2536]">
+                v0.1
+              </span>
+            </div>
+            <p className="text-[10px] font-mono text-[#8A94A6] truncate">
+              Local security daemon
+            </p>
           </div>
         </div>
 
-        {/* Primary 4-Screen Navigation */}
-        <div className="px-4 py-6">
-          <div className="px-3 pb-2 text-[11px] font-semibold text-[#8A96A8] tracking-wider uppercase font-mono">
-            WORKSTATION SCREENS
-          </div>
-          <nav className="space-y-1.5">
+        {/* Workstation Navigation */}
+        <div className="p-3 space-y-1">
+          <p className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#8A94A6]">
+            Workstation
+          </p>
+
+          <nav className="space-y-1">
             {mainNavItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              const isActive = pathname === item.href;
               const Icon = item.icon;
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`group flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150 ${
                     isActive
-                      ? 'bg-[#181E2B] text-[#93CCFF] border border-[#93CCFF]/30 shadow-md shadow-[#93CCFF]/5 font-semibold'
-                      : 'text-[#C5CDD9] hover:bg-[#131722] hover:text-[#DFE2F0]'
+                      ? 'bg-[#131722] text-white border border-[#00E5FF]/30 shadow-xs'
+                      : 'text-[#8A94A6] hover:bg-[#131722]/60 hover:text-white border border-transparent'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#93CCFF]' : 'text-[#8A96A8]'}`} />
+                  <div className="flex items-center gap-2.5">
+                    <span className={`size-5 flex items-center justify-center transition-colors ${
+                      isActive ? 'text-[#00E5FF]' : 'text-[#8A94A6] group-hover:text-white'
+                    }`}>
+                      <Icon className="size-4" />
+                    </span>
                     <span>{item.name}</span>
                   </div>
+
                   {item.badge && (
                     <span
-                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
-                        item.badgeColor || 'border-border text-muted-foreground'
-                      }`}
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border tabular-nums ${item.badgeColor}`}
                     >
                       {item.badge}
                     </span>
@@ -127,36 +147,38 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Bottom Footer: Settings & Daemon Health */}
-      <div className="p-4 border-t border-[#3F4850]/30 space-y-3 bg-[#0A0E17]/40">
-        {/* Settings Link */}
+      {/* Bottom Section: Settings & Daemon Live Telemetry */}
+      <div className="p-3 border-t border-[#1E2536] space-y-2 bg-[#08090C]/60">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition ${
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150 ${
             pathname === '/settings'
-              ? 'bg-[#181E2B] text-[#93CCFF] border border-[#93CCFF]/30'
-              : 'text-[#C5CDD9] hover:bg-[#131722] hover:text-[#DFE2F0]'
+              ? 'bg-[#131722] text-white border border-[#00E5FF]/30 shadow-xs'
+              : 'text-[#8A94A6] hover:bg-[#131722]/60 hover:text-white border border-transparent'
           }`}
         >
-          <Settings className="w-4 h-4 text-[#8A96A8]" />
+          <SettingsSvg className="size-4 text-[#8A94A6]" />
           <span>Settings</span>
         </Link>
 
-        {/* Daemon Connection Pill */}
-        <div className="p-3 rounded-lg bg-[#111624] border border-[#3F4850]/40 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Radio
-              className={`w-3.5 h-3.5 ${
-                daemonStatus?.running ? 'text-emerald-400 animate-pulse' : 'text-red-400'
-              }`}
-            />
-            <span className="text-[11px] font-mono text-[#DFE2F0]">
-              {daemonStatus?.running ? 'DAEMON :8765' : 'DAEMON OFFLINE'}
+        {/* Live Daemon Status Card */}
+        <div className="p-3 rounded-lg bg-[#131722] border border-[#1E2536] space-y-1.5 text-xs">
+          <div className="flex items-center justify-between font-mono text-[10px]">
+            <span className="text-[#8A94A6] flex items-center gap-1.5">
+              <span className={`size-2 rounded-full ${daemonStatus?.running ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+              Port 8765
+            </span>
+            <span className="text-white font-bold">
+              {daemonStatus?.running ? 'Online' : 'Standby'}
             </span>
           </div>
-          <span className="text-[10px] font-mono text-[#4EDEA3] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-            {daemonStatus?.version ? `v${daemonStatus.version}` : 'v0.1.0'}
-          </span>
+
+          <div className="flex items-center justify-between text-[10px] text-[#8A94A6] font-mono tabular-nums pt-1 border-t border-[#1E2536]">
+            <span>Active session</span>
+            <span className="text-white truncate max-w-[100px]">
+              {daemonStatus?.active_session_id ? daemonStatus.active_session_id.slice(0, 8) : 'None'}
+            </span>
+          </div>
         </div>
       </div>
     </aside>

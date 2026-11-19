@@ -139,60 +139,60 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#3F4850]/50 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E2536] pb-4">
         <div>
-          <p className="portal-label text-[#93CCFF]">APPEND-ONLY FLIGHT RECORDER // IMMUTABLE AUDIT TRAIL</p>
-          <h2 className="text-2xl font-extrabold text-white flex items-center gap-2 mt-1 tracking-wide">
-            <FileText className="w-6 h-6 text-[#93CCFF]" /> Audit Log Flight Recorder
+          <p className="portal-label text-[#00E5FF]">Append-only flight recorder // Immutable audit trail</p>
+          <h2 className="text-2xl font-heading font-extrabold text-white flex items-center gap-2.5 mt-1 tracking-tight text-balance">
+            <FileText className="size-6 text-[#00E5FF]" /> Audit log flight recorder
           </h2>
-          <p className="text-xs text-[#BFC7D2] mt-1">
+          <p className="text-xs text-[#8A94A6] mt-1 text-pretty">
             Tamper-evident audit ledger capturing every intercepted operation, permission evaluation, and policy verdict.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleVerifyLog}
             disabled={verifying}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-xs font-mono font-bold text-[#4EDEA3] transition shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-mono font-medium text-emerald-400 transition-colors shadow-xs disabled:opacity-50"
           >
-            <ShieldCheck className={`w-3.5 h-3.5 ${verifying ? 'animate-spin' : ''}`} />
-            VERIFY CRYPTOGRAPHIC LOG
+            <ShieldCheck className={`size-3.5 ${verifying ? 'animate-spin' : ''}`} />
+            Verify cryptographic log
           </button>
 
           <button
             onClick={refresh}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/60 text-xs font-mono font-semibold text-[#DFE2F0] hover:border-[#93CCFF] transition shadow-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#131722] hover:bg-[#1A202E] border border-[#1E2536] text-xs font-mono font-medium text-slate-200 transition-colors shadow-xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-[#93CCFF] ${loading ? 'animate-spin' : ''}`} />
-            REFRESH LOGS
+            <RefreshCw className={`size-3.5 text-[#00E5FF] ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
 
           <button
             onClick={handleTriggerTestAction}
             disabled={isSimulating}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-xs font-mono font-bold text-[#FFB95F] transition shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-mono font-medium text-amber-400 transition-colors shadow-xs disabled:opacity-50"
           >
-            <Terminal className="w-3.5 h-3.5" />
-            TRIGGER TEST AUDIT EVENT
+            <Terminal className="size-3.5" />
+            Test event
           </button>
 
           <button
             onClick={handleExportCSV}
             disabled={!logs.length}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#3198DC] hover:bg-[#93CCFF] text-[#002C47] text-xs font-mono font-bold shadow-md transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#00E5FF]/10 hover:bg-[#00E5FF]/20 border border-[#00E5FF]/30 text-[#00E5FF] text-xs font-mono font-medium transition-colors disabled:opacity-50"
           >
-            <Download className="w-3.5 h-3.5" />
-            EXPORT CSV
+            <Download className="size-3.5" />
+            Export CSV
           </button>
 
           <button
             onClick={handleExportJSON}
             disabled={!logs.length}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#181B25] hover:bg-[#1E2330] border border-[#3F4850]/60 text-[#DFE2F0] text-xs font-mono font-bold transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#131722] hover:bg-[#1A202E] border border-[#1E2536] text-slate-200 text-xs font-mono font-medium transition-colors disabled:opacity-50"
           >
-            <Download className="w-3.5 h-3.5 text-purple-400" />
-            EXPORT JSON
+            <Download className="size-3.5 text-slate-400" />
+            Export JSON
           </button>
         </div>
       </div>
