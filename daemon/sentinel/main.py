@@ -53,6 +53,15 @@ async def root():
     }
 
 
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "service": "SentinelAI Daemon",
+        "port": DAEMON_PORT,
+    }
+
+
 def start():
     """CLI runner."""
     uvicorn.run(

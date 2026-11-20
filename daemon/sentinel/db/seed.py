@@ -206,15 +206,25 @@ def seed_database(db: Optional[Session] = None) -> None:
 
         existing_audit = db.query(AuditLog).filter_by(action_type="SYSTEM_INIT").first()
         if not existing_audit:
+            from sentinel.core.hash_chain import HashChainManager
+            init_audit_data = {
+                "id": str(uuid4()),
+                "action_id": str(uuid4()),
+                "agent_id": "agent-claude-code-001",
+                "action_type": "SYSTEM_INIT",
+                "target_path": "~/.sentinelai/sentinel.db",
+                "outcome": "ALLOW",
+                "risk_score": 0,
+                "file_diff_hash": None,
+                "ip_address": "127.0.0.1",
+            }
+            chain_mgr = HashChainManager(db)
+            prev_h, row_h = chain_mgr.calculate_chain_hashes(init_audit_data)
             db.add(
                 AuditLog(
-                    id=str(uuid4()),
-                    action_id=str(uuid4()),
-                    agent_id="agent-claude-code-001",
-                    action_type="SYSTEM_INIT",
-                    target_path="~/.sentinelai/sentinel.db",
-                    outcome="ALLOW",
-                    risk_score=0,
+                    **init_audit_data,
+                    prev_hash=prev_h,
+                    row_hash=row_h,
                 )
             )
 
