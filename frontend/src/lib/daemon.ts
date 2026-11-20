@@ -212,10 +212,12 @@ export type ActionExplanation = {
 };
 
 export function explainAction(input: {
+  action_id?: string;
   agent_id?: string;
   action_type?: string;
   operation?: string;
   target_path?: string | null;
+  target_url?: string;
   risk_score?: number;
   command?: string | null;
 }) {

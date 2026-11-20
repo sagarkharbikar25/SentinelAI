@@ -162,38 +162,38 @@ export default function AuditLogsPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <OfflineBanner />
 
-      {/* Header with single-row action toolbar (F1: White Headings, F12: Collapsed Export) */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-border pb-4">
+      {/* Header with single-row action toolbar */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-line pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span
-              className={`size-2 rounded-full ${
-                isOnline ? 'bg-accent-emerald animate-pulse' : 'bg-accent-rose'
+              className={`size-2 rounded-pill ${
+                isOnline ? 'bg-safe animate-pulse' : 'bg-critical'
               }`}
             />
             <span
               className={`text-xs font-mono font-medium ${
-                isOnline ? 'text-accent-emerald' : 'text-accent-rose'
+                isOnline ? 'text-safe-ink' : 'text-critical-ink'
               }`}
             >
               Append-only flight recorder &bull; Cryptographic SHA-256 chain
             </span>
           </div>
-          <h1 className="text-3xl font-heading font-extrabold text-text-primary tracking-tight text-balance">
+          <h1 className="text-3xl font-display font-bold text-ink-1 tracking-tight text-balance">
             Audit Log Flight Recorder
           </h1>
-          <p className="text-xs text-text-secondary text-pretty max-w-2xl">
+          <p className="text-xs text-ink-2 text-pretty max-w-2xl">
             Tamper-evident audit ledger capturing every intercepted operation, permission evaluation, and policy verdict.
           </p>
         </div>
 
-        {/* F12: Single-row action toolbar with Collapsed Export Dropdown */}
+        {/* Single-row action toolbar with Collapsed Export Dropdown (Pill radius) */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
           <button
             onClick={handleVerifyLog}
             disabled={verifying || !isOnline}
             title={!isOnline ? 'Daemon offline. Start local service on port 8765 to verify log.' : undefined}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent hover:opacity-90 text-canvas text-xs font-bold transition-opacity shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-pill bg-brand hover:bg-brand-hover text-white text-xs font-bold transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ShieldCheck className={`size-3.5 ${verifying ? 'animate-spin' : ''}`} />
             <span>Verify log</span>
@@ -203,9 +203,9 @@ export default function AuditLogsPage() {
             onClick={refresh}
             disabled={!isOnline}
             title={!isOnline ? 'Daemon offline. Start local service on port 8765 to refresh.' : undefined}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-primary transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 rounded-pill bg-surface hover:bg-well border border-line text-xs font-medium text-ink-1 transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`size-3.5 text-accent ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-3.5 text-brand ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
 
@@ -213,40 +213,40 @@ export default function AuditLogsPage() {
             onClick={handleTriggerTestAction}
             disabled={isSimulating || !isOnline}
             title={!isOnline ? 'Daemon offline. Start local service on port 8765 to inject events.' : undefined}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-secondary transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-pill bg-surface hover:bg-well border border-line text-xs font-medium text-ink-2 hover:text-ink-1 transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Terminal className="size-3.5" />
             <span>Test event</span>
           </button>
 
-          {/* F12: Collapsed Export Dropdown */}
+          {/* Collapsed Export Dropdown */}
           <div className="relative" ref={exportDropdownRef}>
             <button
               onClick={() => setShowExportDropdown(!showExportDropdown)}
               disabled={!logs.length}
               title={!logs.length ? 'No log entries available to export.' : undefined}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-primary transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-pill bg-surface hover:bg-well border border-line text-xs font-medium text-ink-1 transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Download className="size-3.5 text-text-muted" />
+              <Download className="size-3.5 text-ink-3" />
               <span>Export</span>
               <span className="text-[10px] opacity-75">▾</span>
             </button>
 
             {showExportDropdown && logs.length > 0 && (
-              <div className="absolute right-0 mt-2 w-44 rounded-2xl bg-card border border-border shadow-2xl p-1.5 z-50 text-xs space-y-1 animate-in fade-in duration-100">
+              <div className="absolute right-0 mt-2 w-44 rounded-card bg-surface border border-line shadow-card p-2 z-50 text-xs space-y-1 animate-in fade-in duration-100">
                 <button
                   onClick={handleExportCSV}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-card-hover text-text-primary transition-colors flex items-center justify-between"
+                  className="w-full text-left px-3 py-2 rounded-well hover:bg-well text-ink-1 transition-colors flex items-center justify-between"
                 >
                   <span>Export as CSV</span>
-                  <span className="text-[10px] font-mono text-text-muted">.csv</span>
+                  <span className="text-[10px] font-mono text-ink-3">.csv</span>
                 </button>
                 <button
                   onClick={handleExportJSON}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-card-hover text-text-primary transition-colors flex items-center justify-between"
+                  className="w-full text-left px-3 py-2 rounded-well hover:bg-well text-ink-1 transition-colors flex items-center justify-between"
                 >
                   <span>Export as JSON</span>
-                  <span className="text-[10px] font-mono text-text-muted">.json</span>
+                  <span className="text-[10px] font-mono text-ink-3">.json</span>
                 </button>
               </div>
             )}
@@ -254,72 +254,75 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      {/* Cryptographic Proof Banner (F10: Live verification count) */}
-      {verifyResult && (
-        <div
-          role="region"
-          aria-live="polite"
-          className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-mono shadow-xs animate-in fade-in duration-150 ${
-            verifyResult.valid
-              ? 'bg-card border-accent-emerald/40 text-accent-emerald'
-              : 'bg-card border-accent-rose/40 text-accent-rose'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            {verifyResult.valid ? (
-              <ShieldCheck className="size-5 shrink-0 text-accent-emerald" />
-            ) : (
-              <ShieldAlert className="size-5 shrink-0 text-accent-rose" />
-            )}
-            <div>
-              <p className="font-bold">
-                {verifyResult.valid
-                  ? `Cryptographic Integrity Verified: ${verifyResult.count} entries intact`
-                  : 'Tamper Detected: Chain Corruption Found'}
-              </p>
-              <p className="text-[11px] text-text-muted mt-0.5">{verifyResult.message}</p>
-            </div>
+      {/* EXACTLY ONCE on Audit: Hash-chain ribbon backdrop with --gradient-sky */}
+      <div className="p-5 rounded-card bg-gradient-sky shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#071E33]">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-pill bg-surface/90 text-brand-ink shadow-xs">
+            <ShieldCheck className="size-5" />
           </div>
-          {verifyResult.head_hash && (
-            <span className="text-[10px] text-text-muted font-mono">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono uppercase font-bold text-[#071E33]/80 tracking-wider">
+                Cryptographic Merkle Ledger
+              </span>
+              <span className="px-2 py-0.5 rounded-pill bg-lime text-ink-1 text-[9px] font-bold font-mono">
+                SHA-256
+              </span>
+            </div>
+            <p className="font-display font-bold text-lg text-[#071E33] leading-snug">
+              {verifyResult
+                ? verifyResult.valid
+                  ? `Integrity Verified: ${verifyResult.count} entries mathematically confirmed`
+                  : 'Tamper Detected: Chain Corruption Found'
+                : `Active Ledger: ${logs.length} sequential operations linked by hash`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {verifyResult?.head_hash && (
+            <span className="text-[11px] font-mono px-3 py-1.5 rounded-pill bg-surface/90 text-ink-1 border border-line shadow-xs">
               Head: {verifyResult.head_hash.slice(0, 16)}...
             </span>
           )}
+          <span className="px-3.5 py-1.5 rounded-pill bg-surface/90 text-safe-ink font-mono font-bold text-xs shadow-xs border border-line">
+            {verifyResult?.valid ? 'CHAIN VERIFIED' : isOnline ? 'DAEMON READY' : 'OFFLINE'}
+          </span>
         </div>
-      )}
+      </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-card border border-accent-rose/40 text-accent-rose text-xs font-mono flex items-center gap-2">
+        <div className="p-3.5 rounded-well bg-critical-soft text-critical-ink text-xs font-mono flex items-center gap-2">
           <AlertTriangle className="size-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Control Bar: Search & Filters */}
-      <div className="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+      {/* Control Bar: Search & Filters (Wells, pill radius) */}
+      <div className="p-4 rounded-card bg-surface shadow-card flex flex-wrap items-center justify-between gap-3 text-xs">
         {/* Search */}
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="size-3.5 text-text-muted absolute left-3.5 top-2.5" />
+          <Search className="size-3.5 text-ink-3 absolute left-4 top-3" />
           <input
             type="text"
             placeholder="Search action ID, agent, command, path..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-surface border border-border rounded-xl pl-9 pr-3.5 py-1.5 text-xs text-text-primary font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all"
+            className="w-full bg-well border border-line rounded-pill pl-10 pr-4 py-2 text-xs text-ink-1 font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-brand transition-all"
           />
         </div>
 
         {/* Filter by Verdict */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-mono text-text-muted font-medium mr-1">Verdict:</span>
+          <span className="text-[11px] font-mono text-ink-3 font-medium mr-1">Verdict:</span>
           {(['ALL', 'BLOCKED', 'ALLOWED', 'PROMPT'] as const).map((outcome) => (
             <button
               key={outcome}
               onClick={() => setFilterOutcome(outcome)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`px-3 py-1 rounded-pill text-xs font-medium transition-all ${
                 filterOutcome === outcome
-                  ? 'bg-surface text-accent font-semibold border border-accent/30 shadow-xs'
-                  : 'bg-surface/50 text-text-secondary hover:text-text-primary'
+                  ? 'bg-brand-soft text-brand-ink font-semibold'
+                  : 'bg-well text-ink-2 hover:text-ink-1'
               }`}
             >
               {outcome}
@@ -329,15 +332,15 @@ export default function AuditLogsPage() {
 
         {/* Filter by Severity */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-mono text-text-muted font-medium mr-1">Risk:</span>
+          <span className="text-[11px] font-mono text-ink-3 font-medium mr-1">Risk:</span>
           {(['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((sev) => (
             <button
               key={sev}
               onClick={() => setFilterSeverity(sev)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`px-3 py-1 rounded-pill text-xs font-medium transition-all ${
                 filterSeverity === sev
-                  ? 'bg-surface text-accent font-semibold border border-accent/30 shadow-xs'
-                  : 'bg-surface/50 text-text-secondary hover:text-text-primary'
+                  ? 'bg-brand-soft text-brand-ink font-semibold'
+                  : 'bg-well text-ink-2 hover:text-ink-1'
               }`}
             >
               {sev}
@@ -346,11 +349,11 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
+      {/* Table Container (1px line border, 20px radius, shadow-card) */}
+      <div className="rounded-card bg-surface border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-surface text-text-muted border-b border-border uppercase text-[10px]">
+            <thead className="bg-well text-ink-3 border-b border-line uppercase text-[10px]">
               <tr>
                 <th className="py-3 px-4 font-semibold">Time</th>
                 <th className="py-3 px-4 font-semibold">Agent</th>
@@ -360,10 +363,10 @@ export default function AuditLogsPage() {
                 <th className="py-3 px-4 font-semibold text-right">Verdict</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border-subtle">
+            <tbody className="divide-y divide-line">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-text-muted">
+                  <td colSpan={6} className="py-12 text-center text-ink-3">
                     {isOnline ? 'No audit records match the current filter criteria.' : 'Daemon offline. No actions to display.'}
                   </td>
                 </tr>
@@ -376,30 +379,30 @@ export default function AuditLogsPage() {
                     <tr
                       key={log.id}
                       onClick={() => setSelectedLog(log)}
-                      className="hover:bg-card-hover transition-colors cursor-pointer"
+                      className="hover:bg-well/60 transition-colors cursor-pointer"
                     >
-                      <td className="py-3 px-4 text-text-muted tabular-nums whitespace-nowrap">
+                      <td className="py-3 px-4 text-ink-3 tabular-nums whitespace-nowrap">
                         {formatLocalTime(log.created_at)}
                       </td>
-                      <td className="py-3 px-4 font-medium text-text-primary whitespace-nowrap">
+                      <td className="py-3 px-4 font-medium text-ink-1 whitespace-nowrap">
                         {log.agent_id || 'system'}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-md bg-surface border border-border text-[10px] text-text-secondary">
+                        <span className="px-2.5 py-0.5 rounded-pill bg-well text-[10px] text-ink-2">
                           {log.action_type}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-text-secondary max-w-xs truncate" title={log.target_path || undefined}>
+                      <td className="py-3 px-4 text-ink-2 max-w-xs truncate" title={log.target_path || undefined}>
                         {log.target_path || 'None'}
                       </td>
                       <td className="py-3 px-4 text-center tabular-nums font-semibold">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] ${
+                          className={`px-2.5 py-0.5 rounded-pill text-[10px] font-mono ${
                             log.risk_score >= 80
-                              ? 'bg-accent-rose/15 text-accent-rose font-bold'
+                              ? 'bg-critical-soft text-critical-ink font-bold'
                               : log.risk_score >= 50
-                              ? 'bg-accent-amber/15 text-accent-amber font-bold'
-                              : 'bg-accent-emerald/15 text-accent-emerald'
+                              ? 'bg-high-soft text-high-ink font-bold'
+                              : 'bg-safe-soft text-safe-ink font-medium'
                           }`}
                         >
                           {log.risk_score}/100
@@ -407,12 +410,12 @@ export default function AuditLogsPage() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap font-bold">
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] ${
+                          className={`px-2.5 py-0.5 rounded-pill text-[10px] font-mono ${
                             isBlock
-                              ? 'bg-accent-rose/15 text-accent-rose border border-accent-rose/30'
+                              ? 'bg-critical-soft text-critical-ink'
                               : isPrompt
-                              ? 'bg-accent-amber/15 text-accent-amber border border-accent-amber/30'
-                              : 'bg-accent-emerald/15 text-accent-emerald border border-accent-emerald/30'
+                              ? 'bg-caution-soft text-caution-ink'
+                              : 'bg-safe-soft text-safe-ink'
                           }`}
                         >
                           {log.outcome}
@@ -429,42 +432,42 @@ export default function AuditLogsPage() {
 
       {/* Detail Slide-over / Modal */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 select-none">
-          <div className="w-full max-w-lg rounded-2xl bg-card border border-border shadow-2xl p-6 space-y-4 font-mono text-xs animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <span className="font-heading font-bold text-sm text-text-primary">Audit Event Detail</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 select-none">
+          <div className="w-full max-w-lg rounded-card bg-surface border border-line shadow-card p-6 space-y-4 font-mono text-xs animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <span className="font-display font-bold text-base text-ink-1">Audit Event Detail</span>
               <button
                 onClick={() => setSelectedLog(null)}
                 aria-label="Close details"
-                className="size-7 rounded-lg bg-surface hover:bg-card-hover text-text-secondary flex items-center justify-center"
+                className="size-7 rounded-pill bg-well hover:bg-well/80 text-ink-2 flex items-center justify-center"
               >
                 ✕
               </button>
             </div>
             <div className="space-y-2.5">
-              <div className="flex justify-between py-1 border-b border-border-subtle">
-                <span className="text-text-muted">Action ID:</span>
-                <span className="text-text-primary font-semibold">{selectedLog.id}</span>
+              <div className="flex justify-between py-1.5 border-b border-line">
+                <span className="text-ink-3">Action ID:</span>
+                <span className="text-ink-1 font-semibold">{selectedLog.id}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-border-subtle">
-                <span className="text-text-muted">Agent:</span>
-                <span className="text-accent font-bold">{selectedLog.agent_id || 'system'}</span>
+              <div className="flex justify-between py-1.5 border-b border-line">
+                <span className="text-ink-3">Agent:</span>
+                <span className="text-brand-ink font-bold">{selectedLog.agent_id || 'system'}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-border-subtle">
-                <span className="text-text-muted">Operation:</span>
-                <span className="text-text-primary font-semibold">{selectedLog.action_type}</span>
+              <div className="flex justify-between py-1.5 border-b border-line">
+                <span className="text-ink-3">Operation:</span>
+                <span className="text-ink-1 font-semibold">{selectedLog.action_type}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-border-subtle">
-                <span className="text-text-muted">Target:</span>
-                <span className="text-text-secondary truncate max-w-xs">{selectedLog.target_path}</span>
+              <div className="flex justify-between py-1.5 border-b border-line">
+                <span className="text-ink-3">Target:</span>
+                <span className="text-ink-2 truncate max-w-xs">{selectedLog.target_path}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-border-subtle">
-                <span className="text-text-muted">Verdict:</span>
-                <span className="font-bold text-accent-emerald">{selectedLog.outcome}</span>
+              <div className="flex justify-between py-1.5 border-b border-line">
+                <span className="text-ink-3">Verdict:</span>
+                <span className="font-bold text-safe-ink">{selectedLog.outcome}</span>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-text-muted">Risk Score:</span>
-                <span className="font-bold text-accent-amber tabular-nums">{selectedLog.risk_score}/100</span>
+              <div className="flex justify-between py-1.5">
+                <span className="text-ink-3">Risk Score:</span>
+                <span className="font-bold text-caution-ink tabular-nums">{selectedLog.risk_score}/100</span>
               </div>
             </div>
           </div>

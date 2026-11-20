@@ -83,56 +83,66 @@ export default function Navbar() {
   const isOnline = status === 'online';
 
   return (
-    <header className="h-16 border-b border-border bg-surface px-6 flex items-center justify-between sticky top-0 z-40 select-none shrink-0">
-      {/* Route-Derived Breadcrumb (No duplicate logo) */}
-      <div className="flex items-center gap-2 font-mono text-xs text-text-muted">
-        <Link href="/" className="hover:text-text-primary transition-colors">
+    <header className="h-16 border-b border-line bg-surface/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40 select-none shrink-0">
+      {/* Route-Derived Breadcrumb */}
+      <div className="flex items-center gap-2 font-mono text-xs text-ink-3">
+        <Link href="/" className="hover:text-ink-1 transition-colors">
           SentinelAI
         </Link>
         <span>/</span>
-        <span className="text-text-primary font-semibold font-heading tracking-normal">
+        <span className="text-ink-1 font-semibold font-display tracking-tight text-sm">
           {currentBreadcrumb}
         </span>
       </div>
 
-      {/* Real-time Status Center - Strictly derived from useDaemon() */}
-      <div className="flex items-center gap-3">
-        {/* Real-time UTC/IST Clock */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-mono tabular-nums text-text-secondary">
-          <ActivitySvg className="size-3.5 text-accent" />
-          <span className="text-text-primary font-medium">{time}</span>
+      {/* Real-time Status Center - Derived from useDaemon() */}
+      <div className="flex items-center gap-2.5">
+        {/* Real-time Clock */}
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-pill bg-well text-xs font-mono tabular-nums text-ink-2">
+          <ActivitySvg className="size-3.5 text-brand" />
+          <span className="text-ink-1 font-medium">{time}</span>
         </div>
 
         {/* Security Engine State Badge */}
         <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-mono"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-pill bg-well text-xs font-mono"
           title={rawMode}
         >
           <span
-            className={`size-2 rounded-full ${
-              isOnline ? 'bg-accent-emerald animate-pulse' : 'bg-text-muted'
+            className={`size-2 rounded-pill ${
+              isOnline ? 'bg-safe animate-pulse' : 'bg-ink-3'
             }`}
           />
-          <span className="text-text-muted">Mode:</span>
-          <span className={`font-semibold ${isOnline ? 'text-accent' : 'text-text-muted'}`}>
+          <span className="text-ink-3">Mode:</span>
+          <span className={`font-semibold ${isOnline ? 'text-brand-ink' : 'text-ink-3'}`}>
             {isOnline ? mode : 'Offline'}
           </span>
         </div>
 
         {/* Daemon Connection Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-mono">
+        <div
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-pill text-xs font-mono font-medium transition-colors ${
+            isOnline
+              ? 'bg-safe-soft text-safe-ink'
+              : status === 'connecting'
+              ? 'bg-caution-soft text-caution-ink'
+              : 'bg-critical-soft text-critical-ink'
+          }`}
+        >
           <ShieldCheckSvg
             className={`size-3.5 ${
-              isOnline ? 'text-accent-emerald' : status === 'connecting' ? 'text-accent-amber' : 'text-accent-rose'
+              isOnline ? 'text-safe-ink' : status === 'connecting' ? 'text-caution-ink' : 'text-critical-ink'
             }`}
           />
-          <span className="text-text-muted">Daemon:</span>
-          <span
-            className={`font-semibold ${
-              isOnline ? 'text-accent-emerald' : status === 'connecting' ? 'text-accent-amber' : 'text-accent-rose'
-            }`}
-          >
-            {isOnline ? (latencyMs !== null ? `Online (${latencyMs}ms)` : 'Online') : status === 'connecting' ? 'Connecting' : 'Offline'}
+          <span className="opacity-80">Daemon:</span>
+          <span className="font-bold">
+            {isOnline
+              ? latencyMs !== null
+                ? `Online (${latencyMs}ms)`
+                : 'Online'
+              : status === 'connecting'
+              ? 'Connecting'
+              : 'Offline'}
           </span>
         </div>
 
@@ -141,11 +151,11 @@ export default function Navbar() {
           <button
             onClick={() => setShowAlertsDropdown((prev) => !prev)}
             aria-label={`Security alerts, ${alerts.length} unread`}
-            className="relative p-2 rounded-lg bg-card hover:bg-card-hover border border-border text-text-secondary hover:text-text-primary transition-colors duration-150"
+            className="relative p-2 rounded-pill bg-well hover:bg-well/80 text-ink-2 hover:text-ink-1 transition-colors duration-150"
           >
             <ShieldAlertSvg className="size-4" />
             {alerts.length > 0 && (
-              <span className="absolute -top-1 -right-1 size-4 bg-accent-rose text-white font-mono text-[9px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 size-4 bg-critical-soft text-critical-ink border border-critical/30 font-mono text-[9px] font-bold rounded-pill flex items-center justify-center">
                 {alerts.length}
               </span>
             )}
@@ -154,46 +164,48 @@ export default function Navbar() {
           {/* Alerts Popover Menu */}
           {showAlertsDropdown && (
             <div
-              className="absolute right-0 mt-2 w-80 rounded-2xl bg-card border border-border shadow-2xl z-50 p-3.5 space-y-2 font-mono text-xs animate-in fade-in zoom-in-95 duration-100"
+              className="absolute right-0 mt-2 w-80 rounded-card bg-surface border border-line shadow-card z-50 p-4 space-y-2.5 font-mono text-xs animate-in fade-in zoom-in-95 duration-100"
               role="dialog"
               aria-label="Security Alerts Feed"
             >
-              <div className="flex items-center justify-between pb-2 border-b border-border">
-                <span className="text-text-primary font-bold flex items-center gap-1.5 font-heading">
-                  <ShieldAlertSvg className="size-3.5 text-accent-amber" />
+              <div className="flex items-center justify-between pb-2 border-b border-line">
+                <span className="text-ink-1 font-bold flex items-center gap-1.5 font-display text-sm">
+                  <ShieldAlertSvg className="size-3.5 text-caution-ink" />
                   Security Alerts ({alerts.length})
                 </span>
-                <span className="text-[10px] text-text-muted">Live feed</span>
+                <span className="text-[10px] text-ink-3">Live feed</span>
               </div>
 
               <div className="max-h-64 overflow-y-auto space-y-2">
                 {alerts.length === 0 ? (
-                  <div className="py-6 text-center text-text-muted text-xs">
+                  <div className="py-6 text-center text-ink-3 text-xs">
                     {isOnline ? 'No active security alerts. System normal.' : 'Daemon offline. Alerts unavailable.'}
                   </div>
                 ) : (
                   alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className="p-2.5 rounded-xl bg-surface border border-border space-y-1 hover:border-border-hover transition-colors"
+                      className="p-3 rounded-well bg-well space-y-1"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="font-semibold text-text-primary text-[11px] leading-tight">
+                        <span className="font-semibold text-ink-1 text-[11px] leading-tight">
                           {alert.title}
                         </span>
                         <button
                           onClick={(e) => handleDismissAlert(alert.id, e)}
                           aria-label={`Dismiss alert ${alert.title}`}
-                          className="text-text-muted hover:text-text-primary text-[10px]"
+                          className="text-ink-3 hover:text-ink-1 text-[10px]"
                         >
                           ✕
                         </button>
                       </div>
-                      <p className="text-[10px] text-text-secondary line-clamp-2">
+                      <p className="text-[10px] text-ink-2 line-clamp-2">
                         {alert.description}
                       </p>
-                      <div className="flex items-center justify-between text-[9px] text-text-muted pt-1">
-                        <span className="text-accent-rose font-bold">{alert.severity}</span>
+                      <div className="flex items-center justify-between text-[9px] text-ink-3 pt-1">
+                        <span className="px-2 py-0.5 rounded-pill bg-critical-soft text-critical-ink font-bold">
+                          {alert.severity}
+                        </span>
                         <span>{new Date(alert.created_at).toLocaleTimeString()}</span>
                       </div>
                     </div>

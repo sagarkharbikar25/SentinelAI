@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   Play,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useDaemon } from '@/context/DaemonContext';
 import OfflineBanner from '@/components/ui/OfflineBanner';
@@ -96,27 +97,27 @@ export default function LabPage() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <OfflineBanner />
 
-      {/* Header (F1: White Headings, F9: Dynamic Range T1-T7) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-line pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span
-              className={`size-2 rounded-full ${
-                isOnline ? 'bg-accent-amber animate-pulse' : 'bg-accent-rose'
+              className={`size-2 rounded-pill ${
+                isOnline ? 'bg-safe animate-pulse' : 'bg-critical'
               }`}
             />
             <span
               className={`text-xs font-mono font-medium ${
-                isOnline ? 'text-accent-amber' : 'text-accent-rose'
+                isOnline ? 'text-safe-ink' : 'text-critical-ink'
               }`}
             >
               Isolated chaos workspace &bull; Ground-truth recovery
             </span>
           </div>
-          <h1 className="text-3xl font-heading font-extrabold text-text-primary tracking-tight text-balance">
+          <h1 className="text-3xl font-display font-bold text-ink-1 tracking-tight text-balance">
             Test Lab &amp; Chaos VM
           </h1>
-          <p className="text-xs text-text-secondary text-pretty max-w-2xl">
+          <p className="text-xs text-ink-2 text-pretty max-w-2xl">
             Controlled mutation playground for evaluating agent behavior against T1–T{testMatrix.length} threat vectors with automated baseline recovery.
           </p>
         </div>
@@ -125,89 +126,112 @@ export default function LabPage() {
           onClick={handleRunChaosSuite}
           disabled={isRunningAll || !isOnline}
           title={!isOnline ? 'Daemon offline. Start local service on port 8765 to execute chaos tests.' : undefined}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:opacity-90 text-canvas text-xs font-bold transition-opacity shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-pill bg-brand hover:bg-brand-hover text-white text-xs font-bold transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Play className={`size-3.5 ${isRunningAll ? 'animate-spin' : ''}`} />
           <span>{isRunningAll ? 'Executing chaos suite...' : 'Run all chaos tests'}</span>
         </button>
       </div>
 
-      {/* Guided 3-Step Wizard Banner */}
+      {/* Guided 3-Step Wizard Banner (20px card radius, no borders, shadow-card) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-accent-emerald font-semibold">
-            <span className="size-5 rounded-full bg-accent-emerald/15 flex items-center justify-center text-[10px]">1</span>
+        <div className="p-5 rounded-card bg-surface shadow-card space-y-2">
+          <div className="flex items-center gap-2 text-xs font-mono text-safe-ink font-semibold">
+            <span className="size-5 rounded-pill bg-safe-soft text-safe-ink flex items-center justify-center text-[10px] font-bold">1</span>
             <span>Provision Workspace</span>
           </div>
-          <p className="text-xs text-text-secondary leading-relaxed">
+          <p className="text-xs text-ink-2 leading-relaxed">
             Staging directory provisioned with baseline files and SHA-256 ground truth manifest.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-accent-amber font-semibold">
-            <span className="size-5 rounded-full bg-accent-amber/15 flex items-center justify-center text-[10px]">2</span>
+        <div className="p-5 rounded-card bg-surface shadow-card space-y-2">
+          <div className="flex items-center gap-2 text-xs font-mono text-caution-ink font-semibold">
+            <span className="size-5 rounded-pill bg-caution-soft text-caution-ink flex items-center justify-center text-[10px] font-bold">2</span>
             <span>Inject Chaos Agent</span>
           </div>
-          <p className="text-xs text-text-secondary leading-relaxed">
+          <p className="text-xs text-ink-2 leading-relaxed">
             Agent executes file deletion, destructive overwrite, or unauthorized traversal vectors.
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-mono text-accent font-semibold">
-            <span className="size-5 rounded-full bg-accent/15 flex items-center justify-center text-[10px]">3</span>
+        <div className="p-5 rounded-card bg-surface shadow-card space-y-2">
+          <div className="flex items-center gap-2 text-xs font-mono text-brand-ink font-semibold">
+            <span className="size-5 rounded-pill bg-brand-soft text-brand-ink flex items-center justify-center text-[10px] font-bold">3</span>
             <span>Verify &amp; Restore</span>
           </div>
-          <p className="text-xs text-text-secondary leading-relaxed">
+          <p className="text-xs text-ink-2 leading-relaxed">
             Automated verification checks integrity and restores snapshot from content-addressed vault.
           </p>
         </div>
       </div>
 
-      {/* Test Matrix */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-heading font-bold text-text-primary">
-            Chaos Test Matrix (T1–T{testMatrix.length} Empirical Suite)
-          </h2>
-          <span className="text-xs font-mono text-accent-emerald font-medium px-2.5 py-1 rounded-full bg-accent-emerald/15 border border-accent-emerald/30">
+      {/* EXACTLY ONCE on Test Lab: Chaos Ribbon Backdrop with --gradient-sky */}
+      <div className="p-5 rounded-card bg-gradient-sky shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#071E33]">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-pill bg-surface/90 text-brand-ink shadow-xs">
+            <ShieldCheck className="size-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono uppercase font-bold text-[#071E33]/80 tracking-wider">
+                Chaos Test Matrix Suite
+              </span>
+              <span className="px-2 py-0.5 rounded-pill bg-lime text-ink-1 text-[9px] font-bold font-mono">
+                T1–T{testMatrix.length}
+              </span>
+            </div>
+            <p className="font-display font-bold text-lg text-[#071E33] leading-snug">
+              Deterministic Invariant Verification &amp; Rollback Suite
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="px-3.5 py-1.5 rounded-pill bg-surface/90 font-mono font-bold text-xs shadow-xs border border-line text-safe-ink">
             {isOnline ? `${executedCount}/${testMatrix.length} Verified Passed` : 'Daemon Offline (Idle)'}
           </span>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {testMatrix.map((tc) => (
-            <div
-              key={tc.id}
-              className="p-5 rounded-2xl bg-card border border-border shadow-xs hover:border-border-hover transition-colors space-y-3"
-            >
+      {/* Test Matrix Cards (20px card radius, no card border, shadow-card) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {testMatrix.map((tc) => (
+          <div
+            key={tc.id}
+            className="p-5 rounded-card bg-surface shadow-card space-y-3 flex flex-col justify-between"
+          >
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-surface border border-border text-xs font-mono font-bold text-text-primary">
+                  <span className="px-2.5 py-0.5 rounded-pill bg-well text-xs font-mono font-bold text-ink-1">
                     {tc.id}
                   </span>
-                  <span className="text-xs font-heading font-bold text-text-primary">
+                  <span className="text-xs font-display font-bold text-ink-1">
                     {tc.name}
                   </span>
                 </div>
-                <span className="flex items-center gap-1 text-[11px] font-mono text-accent-emerald font-medium px-2 py-0.5 rounded-full bg-accent-emerald/15 border border-accent-emerald/30">
+                <span className={`flex items-center gap-1 text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-pill ${
+                  isOnline
+                    ? 'bg-safe-soft text-safe-ink'
+                    : 'bg-critical-soft text-critical-ink'
+                }`}>
                   <CheckCircle2 className="size-3" />
                   {isOnline ? tc.status : 'OFFLINE'}
                 </span>
               </div>
 
-              <p className="text-xs text-text-secondary leading-relaxed">
+              <p className="text-xs text-ink-2 leading-relaxed">
                 {tc.description}
               </p>
-
-              <div className="pt-2 border-t border-border-subtle flex items-center justify-between text-[11px] font-mono">
-                <span className="text-text-muted">Category: {tc.category}</span>
-                <span className="text-accent-emerald font-semibold">{tc.recoveryRate}</span>
-              </div>
             </div>
-          ))}
-        </div>
+
+            <div className="pt-2.5 border-t border-line flex items-center justify-between text-[11px] font-mono">
+              <span className="text-ink-3">Category: {tc.category}</span>
+              <span className="text-safe-ink font-semibold">{tc.recoveryRate}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
