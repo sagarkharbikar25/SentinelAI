@@ -20,41 +20,49 @@ export function SentinelLogoSvg({ className = 'size-8', size }: IconProps) {
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="shieldGradLight" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#059669" />
-          <stop offset="1" stopColor="#047857" />
+        <linearGradient id="shieldGradBrand" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1570E0" />
+          <stop offset="0.55" stopColor="#5BB8F0" />
+          <stop offset="1" stopColor="#8FDDF7" />
         </linearGradient>
-        <linearGradient id="coreGradLight" x1="22" y1="22" x2="42" y2="42" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#10B981" />
-          <stop offset="1" stopColor="#047857" />
+        <linearGradient id="coreGradBrand" x1="22" y1="22" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1570E0" />
+          <stop offset="1" stopColor="#0B4FA8" />
         </linearGradient>
+        <filter id="softGlow" x="18" y="18" width="28" height="28" filterUnits="userSpaceOnUse">
+          <feGaussianBlur stdDeviation="1.5" result="glow" />
+          <feComposite in="SourceGraphic" in2="glow" operator="over" />
+        </filter>
       </defs>
-      {/* Outer Shield */}
+      {/* Outer Shield with Chamfered Precision Contour */}
       <path
-        d="M32 5L10 14V29C10 43.5 19.3 56.5 32 60C44.7 56.5 54 43.5 54 29V14L32 5Z"
-        stroke="url(#shieldGradLight)"
-        strokeWidth="2.5"
+        d="M32 6L11 14.5V29.5C11 43.8 20.2 56.6 32 60C43.8 56.6 53 43.8 53 29.5V14.5L32 6Z"
+        fill="url(#shieldGradBrand)"
+        fillOpacity="0.12"
+        stroke="url(#shieldGradBrand)"
+        strokeWidth="2.75"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="#ECFDF5"
       />
-      {/* Circuit Nodes */}
-      <path
-        d="M32 13V23M21 28H25M39 28H43M32 43V52M23 41L27 38M41 41L37 38"
-        stroke="#059669"
+      {/* Interlocking Cryptographic Nexus Ring */}
+      <circle
+        cx="32"
+        cy="32"
+        r="14"
+        stroke="#1570E0"
         strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeOpacity="0.75"
+        strokeDasharray="4 2.5"
+        strokeOpacity="0.65"
       />
-      {/* Inner Vault Core */}
+      {/* Neural Core Geometric Vault */}
       <polygon
-        points="32,23 41,32 32,41 23,32"
-        fill="url(#coreGradLight)"
-        stroke="#047857"
-        strokeWidth="1.5"
+        points="32,22 41,32 32,42 23,32"
+        fill="url(#coreGradBrand)"
+        filter="url(#softGlow)"
       />
-      {/* Central Node */}
-      <circle cx="32" cy="32" r="3" fill="#FFFFFF" />
+      {/* Precision Core Apex */}
+      <circle cx="32" cy="32" r="2.8" fill="#FFFFFF" />
+      <circle cx="32" cy="32" r="1.2" fill="#8FDDF7" />
     </svg>
   );
 }

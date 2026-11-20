@@ -53,17 +53,17 @@ export default function Sidebar() {
     <aside className="w-64 border-r border-line bg-surface flex flex-col shrink-0 select-none h-dvh sticky top-0 z-30">
       {/* Top Header / App Title */}
       <div className="h-16 flex items-center px-5 border-b border-line gap-3 bg-surface shrink-0">
-        <div className="relative size-9 rounded-well bg-well flex items-center justify-center p-1 overflow-hidden">
+        <div className="relative size-10 rounded-well bg-well/80 border border-line flex items-center justify-center p-1 overflow-hidden shadow-xs shrink-0">
           <Image
             src="/logo.png"
             alt="SentinelAI Logo"
-            width={32}
-            height={32}
-            className="object-cover rounded-lg"
+            width={34}
+            height={34}
+            className="object-contain rounded-md"
             priority
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="font-display font-extrabold text-base tracking-tight text-ink-1">
               Sentinel<span className="text-brand">AI</span>
