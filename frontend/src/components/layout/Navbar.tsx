@@ -16,6 +16,7 @@ import {
 import { getAlerts, markAlertRead, DaemonAlert } from '@/lib/daemon';
 import { useDaemon } from '@/context/DaemonContext';
 import { formatLocalTime } from '@/lib/dateUtils';
+import { useNavigationLoader } from '@/context/NavigationContext';
 
 const routeConfig: Record<string, { title: string; subtitle: string; icon: React.ElementType }> = {
   '/': { title: 'Home', subtitle: 'Runtime Governance & Overview', icon: HomeSvg },
@@ -31,6 +32,7 @@ export default function Navbar() {
   const RouteIcon = currentRoute.icon;
 
   const { status, latencyMs, mode, rawMode, dbConnected, canaryCount, lastSeenAt, refresh: refreshDaemon } = useDaemon();
+  const { startNavigation } = useNavigationLoader();
 
   const [time, setTime] = useState<string>('00:00:00 IST');
   const [alerts, setAlerts] = useState<DaemonAlert[]>([]);
@@ -98,6 +100,9 @@ export default function Navbar() {
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 font-mono text-xs">
           <Link
             href="/"
+            onClick={() => {
+              if (pathname !== '/') startNavigation('/');
+            }}
             className="flex items-center gap-1.5 text-ink-3 hover:text-ink-1 transition-colors font-medium"
           >
             <span className="size-2 rounded-full bg-brand" />

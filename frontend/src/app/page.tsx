@@ -353,7 +353,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} minDuration={800} />}
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} minDuration={2000} />}
 
       <div className="space-y-6 max-w-7xl mx-auto">
         <OfflineBanner />
