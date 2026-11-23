@@ -250,6 +250,11 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
             decision.explanation += " (User did not respond within 30 seconds. Automatically blocked for safety)."
         finally:
             pending_events.pop(action_id, None)
+            try:
+                db.query(Alert).filter(Alert.action_id == action_id).update({"is_read": True})
+                db.commit()
+            except Exception:
+                pass
 
     # 3. Save decision record
     decision_record = Decision(
@@ -309,9 +314,33 @@ async def verify_log_endpoint(db: DBSession = Depends(get_db)):
 
 
 @router.get("/prompts/pending")
-async def get_pending_prompts():
-    """Returns list of pending action IDs currently awaiting human resolution."""
-    return {"pending_action_ids": list(pending_events.keys()), "count": len(pending_events)}
+async def get_pending_prompts(db: DBSession = Depends(get_db)):
+    """Returns list of pending action IDs currently awaiting human resolution with rich metadata."""
+    if not pending_events:
+        return {"pending_action_ids": [], "prompts": [], "count": 0}
+
+    active_ids = list(pending_events.keys())
+    actions = db.query(Action).filter(Action.id.in_(active_ids)).all()
+    prompts = []
+    for a in actions:
+        agent_name = a.agent.name if a.agent else (a.agent_id or "Claude Code")
+        prompts.append({
+            "id": a.id,
+            "agentId": agent_name,
+            "actionType": a.action_type or "DELETE",
+            "targetPath": a.target_path or a.command or "Protected Resource",
+            "riskScore": a.risk_score or 75,
+            "riskCategory": a.file_sensitivity or "HIGH",
+            "reasonCode": "LIVE_PROMPT_INTERCEPTION",
+            "explanation": f"Agent '{agent_name}' requested {a.action_type} on '{a.target_path or a.command}'. Requires human confirmation before proceeding.",
+            "fileContext": {
+                "size": "Target resource on disk",
+                "isGitTracked": False,
+                "lastModified": "Live telemetry",
+                "inScope": True,
+            },
+        })
+    return {"pending_action_ids": active_ids, "prompts": prompts, "count": len(prompts)}
 
 
 @router.post("/user-response", response_model=UserResponseResult)
@@ -329,6 +358,12 @@ async def user_response(req: UserResponseRequest, db: DBSession = Depends(get_db
         if action_id:
             action = db.query(Action).filter(Action.id == action_id).first()
             if action:
+                # Mark alert read if it wasn't
+                try:
+                    db.query(Alert).filter(Alert.action_id == action_id).update({"is_read": True})
+                    db.commit()
+                except Exception:
+                    pass
                 return UserResponseResult(
                     ok=False,
                     action_id=action_id,
@@ -345,6 +380,13 @@ async def user_response(req: UserResponseRequest, db: DBSession = Depends(get_db
     # Register choice and unblock waiting intercept handler
     user_choices[action_id] = choice
     pending_events[action_id].set()
+
+    # Mark corresponding alert as read so it never triggers UI prompt again
+    try:
+        db.query(Alert).filter(Alert.action_id == action_id).update({"is_read": True})
+        db.commit()
+    except Exception:
+        pass
 
     return UserResponseResult(
         ok=True,

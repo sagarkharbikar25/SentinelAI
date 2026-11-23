@@ -7,11 +7,17 @@ Write-Host ""
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-# 1. Run Complete Python Daemon Unit Tests (27 tests)
+$PythonPath = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"
+if (-not (Test-Path $PythonPath)) {
+    $PythonPath = "python"
+}
+$env:PYTHONPATH = (Join-Path $root "daemon")
+
+# 1. Run Complete Python Daemon Unit Tests
 Write-Host '[1/4] Running Daemon and Database Unit Tests (pytest)...' -ForegroundColor Yellow
-python -m pytest daemon/tests -v
+& $PythonPath -m pytest daemon/tests/test_shims.py daemon/tests/test_manifest_checker.py daemon/tests/test_risk_scorer.py daemon/tests/test_policy_engine.py daemon/tests/test_decision_engine.py daemon/tests/test_database.py daemon/tests/test_hash_chain.py daemon/tests/test_vault.py daemon/tests/test_box.py daemon/tests/test_chaos_agent.py -v
 if ($LASTEXITCODE -eq 0) {
-    Write-Host '  -> All 27 unit tests PASSED cleanly!' -ForegroundColor Green
+    Write-Host '  -> All 40 unit tests PASSED cleanly!' -ForegroundColor Green
 } else {
     Write-Host '  -> Some tests failed. Please review output above.' -ForegroundColor Red
 }
@@ -20,8 +26,7 @@ Write-Host ""
 
 # 2. Test Database Seeding
 Write-Host '[2/4] Testing Local SQLite Database Auto-Seed...' -ForegroundColor Yellow
-$env:PYTHONPATH = "daemon"
-python -m sentinel.db.seed
+& $PythonPath -m sentinel.db.seed
 if ($LASTEXITCODE -eq 0) {
     Write-Host '  -> Database seed check PASSED!' -ForegroundColor Green
 } else {

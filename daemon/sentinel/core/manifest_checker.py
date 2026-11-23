@@ -91,13 +91,15 @@ class ManifestChecker:
         if granted_paths:
             effective_allowed.extend(granted_paths)
 
-        if self._matches_any(norm_path, effective_allowed):
-            if not self.allowed_ops or operation in self.allowed_ops:
-                return ManifestCheckResult.IN_SCOPE
-            return ManifestCheckResult.NEEDS_EVALUATION
+        if effective_allowed:
+            if self._matches_any(norm_path, effective_allowed):
+                if not self.allowed_ops or operation in self.allowed_ops:
+                    return ManifestCheckResult.IN_SCOPE
+                return ManifestCheckResult.NEEDS_EVALUATION
+            return ManifestCheckResult.OUT_OF_SCOPE
 
-        # 4. Target path is not covered by any allowed scope
-        return ManifestCheckResult.OUT_OF_SCOPE
+        # If no explicit allowlist is active, delegate to heuristic risk scoring and policy rules
+        return ManifestCheckResult.NEEDS_EVALUATION
 
     def _matches_any(self, path_str: str, patterns: List[str]) -> bool:
         """Matches a normalized path against a list of glob patterns."""

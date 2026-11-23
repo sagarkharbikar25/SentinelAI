@@ -141,9 +141,27 @@ export function respondToPrompt(actionId: string, userChoice: 'ALLOW' | 'BLOCK')
   });
 }
 
+export type PendingPromptItem = {
+  id: string;
+  agentId: string;
+  actionType: string;
+  targetPath: string;
+  riskScore: number;
+  riskCategory: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  reasonCode: string;
+  explanation: string;
+  fileContext?: {
+    size?: string;
+    isGitTracked?: boolean;
+    lastModified?: string;
+    inScope?: boolean;
+  };
+};
+
 export function getPendingPrompts() {
-  return daemonFetch<{ pending_action_ids: string[]; count: number }>('/daemon/prompts/pending').catch(() => ({
+  return daemonFetch<{ pending_action_ids: string[]; prompts?: PendingPromptItem[]; count: number }>('/daemon/prompts/pending').catch(() => ({
     pending_action_ids: [],
+    prompts: [],
     count: 0,
   }));
 }

@@ -2,6 +2,11 @@ $root = $PSScriptRoot
 $frontendPath = Join-Path $root 'frontend'
 $daemonPath = Join-Path $root 'daemon'
 
+$PythonPath = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"
+if (-not (Test-Path $PythonPath)) {
+    $PythonPath = "python"
+}
+
 Write-Host "=========================================================" -ForegroundColor Cyan
 Write-Host "       Starting SentinelAI Cybersecurity Supervisor      " -ForegroundColor Cyan
 Write-Host "=========================================================" -ForegroundColor Cyan
@@ -18,7 +23,7 @@ try {
 
 # 2. Start Python Security Daemon (Port 8765)
 Write-Host "[2/3] Launching Python Security Daemon (Port 8765)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = 'SentinelAI - Python Security Daemon (Port 8765)'; Set-Location '$daemonPath'; Write-Host '=== SentinelAI Python Security Daemon (Port 8765) ===' -ForegroundColor Green; python -m sentinel.main"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = 'SentinelAI - Python Security Daemon (Port 8765)'; Set-Location '$daemonPath'; `$env:PYTHONPATH = '$daemonPath'; Write-Host '=== SentinelAI Python Security Daemon (Port 8765) ===' -ForegroundColor Green; & '$PythonPath' -m sentinel.main"
 
 # 3. Start Next.js Dashboard Frontend (Port 3000)
 Write-Host "[3/3] Launching Next.js Dashboard Frontend (Port 3000)..." -ForegroundColor Yellow

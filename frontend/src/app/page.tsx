@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   ActivitySvg,
@@ -11,6 +11,7 @@ import {
   getRecentActions,
   interceptAction,
   getAlerts,
+  getPendingPrompts,
   explainAction,
   ActionLog,
   ActionExplanation,
@@ -67,6 +68,7 @@ export default function DashboardPage() {
   const [isTriggeringAction, setIsTriggeringAction] = useState(false);
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
   const [showDemoMenu, setShowDemoMenu] = useState(false);
+  const dismissedPromptsRef = useRef<Set<string>>(new Set());
 
   // Update dynamic indicators when online status changes
   useEffect(() => {
@@ -90,36 +92,28 @@ export default function DashboardPage() {
     if (!isOnline) return;
     setIsRefreshing(true);
     try {
-      const [actions, alerts] = await Promise.all([
+      const [actions, pendingResp] = await Promise.all([
         getRecentActions(200).catch(() => []),
-        getAlerts().catch(() => []),
+        getPendingPrompts().catch(() => ({ pending_action_ids: [], prompts: [], count: 0 })),
       ]);
       setDaemonActions(actions);
 
-      // Auto-trigger live Permission Prompt Dialog if an unread alert with action_id exists
-      const pendingPromptAlert = alerts.find((a) => a.action_id && !a.is_read);
-      if (pendingPromptAlert && pendingPromptAlert.action_id) {
-        setActivePrompt((curr) => {
-          if (!curr || curr.id !== pendingPromptAlert.action_id) {
-            return {
-              id: pendingPromptAlert.action_id!,
-              agentId: 'Claude Code',
-              actionType: pendingPromptAlert.title.includes('DELETE') ? 'DELETE' : 'EXECUTE',
-              targetPath: pendingPromptAlert.title.split('on ')[1] || 'Protected Resource',
-              riskScore: pendingPromptAlert.severity === 'CRITICAL' ? 95 : 75,
-              riskCategory: (pendingPromptAlert.severity as any) || 'CRITICAL',
-              reasonCode: 'LIVE_PROMPT_INTERCEPTION',
-              explanation: pendingPromptAlert.description,
-              fileContext: {
-                size: 'Target file on system',
-                isGitTracked: false,
-                lastModified: 'Live stream',
-                inScope: false,
-              },
-            };
-          }
-          return curr;
-        });
+      // Trigger live Permission Prompt Dialog ONLY for currently active pending actions
+      if (pendingResp.prompts && pendingResp.prompts.length > 0) {
+        const nextPrompt = pendingResp.prompts.find((p) => !dismissedPromptsRef.current.has(p.id));
+        if (nextPrompt) {
+          setActivePrompt((curr) => {
+            if (!curr || curr.id !== nextPrompt.id) {
+              return nextPrompt as PromptAction;
+            }
+            return curr;
+          });
+        } else {
+          setActivePrompt(null);
+        }
+      } else {
+        // No active pending prompts currently awaiting resolution
+        setActivePrompt(null);
       }
     } catch {
       // offline handled gracefully
@@ -858,8 +852,15 @@ export default function DashboardPage() {
       {/* Interactive Permission Prompt Dialog */}
       <PermissionPromptDialog
         prompt={activePrompt}
-        onClose={() => setActivePrompt(null)}
-        onDecisionApplied={syncActions}
+        onClose={() => {
+          if (activePrompt) dismissedPromptsRef.current.add(activePrompt.id);
+          setActivePrompt(null);
+        }}
+        onDecisionApplied={(choice) => {
+          if (activePrompt) dismissedPromptsRef.current.add(activePrompt.id);
+          setActivePrompt(null);
+          syncActions();
+        }}
       />
     </>
   );

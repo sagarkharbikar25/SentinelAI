@@ -1,4 +1,8 @@
 # Run SentinelAI Security Daemon on port 8765
+$daemonDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $daemonDir
+$env:PYTHONPATH = $daemonDir
+
 $PythonPath = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"
 if (-not (Test-Path $PythonPath)) {
     $PythonPath = "python"

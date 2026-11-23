@@ -1,4 +1,6 @@
 @echo off
+cd /d "%~dp0"
+set "PYTHONPATH=%~dp0"
 set "PYTHON_EXE=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
 if not exist "%PYTHON_EXE%" (
     set "PYTHON_EXE=python"
