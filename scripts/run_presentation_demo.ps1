@@ -119,6 +119,9 @@ foreach ($s in $scenarios) {
     Write-Host "[$($s.Step)] Agent: $($s.Agent) ($($s.Type))" -ForegroundColor Yellow
     Write-Host "       Action: $($s.Action) | Target: $($s.Target)" -ForegroundColor White
     Write-Host "       Intent: $($s.Desc)" -ForegroundColor Gray
+    if ($s.Step -eq "5/8") {
+        Write-Host "       >>> LIVE PROMPT: LOOK AT DASHBOARD (http://localhost:3000) TO CONFIRM / DENY <<<" -ForegroundColor Yellow
+    }
 
     $payload = @{
         agent_id = $s.Agent

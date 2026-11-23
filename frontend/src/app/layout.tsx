@@ -5,6 +5,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import { DaemonProvider } from '@/context/DaemonContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { NavigationProvider } from '@/context/NavigationContext';
+import GlobalPromptListener from '@/components/GlobalPromptListener';
 
 export const metadata: Metadata = {
   title: 'SentinelAI — AI Agent Security & Governance Platform',
@@ -46,6 +47,7 @@ export default function RootLayout({
                   </main>
                 </div>
               </div>
+              <GlobalPromptListener />
             </NavigationProvider>
           </DaemonProvider>
         </ThemeProvider>

@@ -767,10 +767,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Table Container (1px line border, 20px radius, shadow-card) */}
-          <div className="rounded-card bg-surface border border-line shadow-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-well text-ink-3 border-b border-line uppercase text-[10px]">
+          <div className="rounded-card bg-surface border border-line shadow-card overflow-hidden flex flex-col">
+            <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
+              <table className="w-full text-left text-xs font-mono relative">
+                <thead className="bg-well text-ink-3 border-b border-line uppercase text-[10px] sticky top-0 z-10 shadow-xs">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Time</th>
                     <th className="py-3 px-4 font-semibold">Agent</th>
@@ -848,20 +848,6 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
-
-      {/* Interactive Permission Prompt Dialog */}
-      <PermissionPromptDialog
-        prompt={activePrompt}
-        onClose={() => {
-          if (activePrompt) dismissedPromptsRef.current.add(activePrompt.id);
-          setActivePrompt(null);
-        }}
-        onDecisionApplied={(choice) => {
-          if (activePrompt) dismissedPromptsRef.current.add(activePrompt.id);
-          setActivePrompt(null);
-          syncActions();
-        }}
-      />
     </>
   );
 }

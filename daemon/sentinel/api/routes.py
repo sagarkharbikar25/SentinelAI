@@ -52,6 +52,7 @@ llm_explainer = LLMExplainer()
 
 # In-memory synchronization latch for interactive user prompts
 pending_events: Dict[str, asyncio.Event] = {}
+pending_prompts_data: Dict[str, dict] = {}
 user_choices: Dict[str, str] = {}
 active_session_id: Optional[str] = None
 
@@ -225,6 +226,24 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
         event = asyncio.Event()
         pending_events[action_id] = event
 
+        agent_display_name = req.agent_id or "Claude Code"
+        pending_prompts_data[action_id] = {
+            "id": action_id,
+            "agentId": agent_display_name,
+            "actionType": req.operation or req.action_type or "DELETE",
+            "targetPath": req.target_path or req.command or "Protected Resource",
+            "riskScore": decision.risk_score,
+            "riskCategory": decision.risk_category.value,
+            "reasonCode": decision.reason_code,
+            "explanation": decision.explanation,
+            "fileContext": {
+                "size": "Target resource on disk",
+                "isGitTracked": False,
+                "lastModified": "Live telemetry",
+                "inScope": True,
+            },
+        }
+
         # Also create an Alert for UI
         alert = Alert(
             id=str(uuid4()),
@@ -250,6 +269,7 @@ async def intercept_action(req: InterceptRequest, db: DBSession = Depends(get_db
             decision.explanation += " (User did not respond within 30 seconds. Automatically blocked for safety)."
         finally:
             pending_events.pop(action_id, None)
+            pending_prompts_data.pop(action_id, None)
             try:
                 db.query(Alert).filter(Alert.action_id == action_id).update({"is_read": True})
                 db.commit()
@@ -320,26 +340,32 @@ async def get_pending_prompts(db: DBSession = Depends(get_db)):
         return {"pending_action_ids": [], "prompts": [], "count": 0}
 
     active_ids = list(pending_events.keys())
-    actions = db.query(Action).filter(Action.id.in_(active_ids)).all()
     prompts = []
-    for a in actions:
-        agent_name = a.agent.name if a.agent else (a.agent_id or "Claude Code")
-        prompts.append({
-            "id": a.id,
-            "agentId": agent_name,
-            "actionType": a.action_type or "DELETE",
-            "targetPath": a.target_path or a.command or "Protected Resource",
-            "riskScore": a.risk_score or 75,
-            "riskCategory": a.file_sensitivity or "HIGH",
-            "reasonCode": "LIVE_PROMPT_INTERCEPTION",
-            "explanation": f"Agent '{agent_name}' requested {a.action_type} on '{a.target_path or a.command}'. Requires human confirmation before proceeding.",
-            "fileContext": {
-                "size": "Target resource on disk",
-                "isGitTracked": False,
-                "lastModified": "Live telemetry",
-                "inScope": True,
-            },
-        })
+    for aid in active_ids:
+        if aid in pending_prompts_data:
+            prompts.append(pending_prompts_data[aid])
+
+    # Fallback to DB if prompt data wasn't in cache
+    if not prompts:
+        actions = db.query(Action).filter(Action.id.in_(active_ids)).all()
+        for a in actions:
+            agent_name = a.agent.name if a.agent else (a.agent_id or "Claude Code")
+            prompts.append({
+                "id": a.id,
+                "agentId": agent_name,
+                "actionType": a.action_type or "DELETE",
+                "targetPath": a.target_path or a.command or "Protected Resource",
+                "riskScore": a.risk_score or 75,
+                "riskCategory": a.file_sensitivity or "HIGH",
+                "reasonCode": "LIVE_PROMPT_INTERCEPTION",
+                "explanation": f"Agent '{agent_name}' requested {a.action_type} on '{a.target_path or a.command}'. Requires human confirmation before proceeding.",
+                "fileContext": {
+                    "size": "Target resource on disk",
+                    "isGitTracked": False,
+                    "lastModified": "Live telemetry",
+                    "inScope": True,
+                },
+            })
     return {"pending_action_ids": active_ids, "prompts": prompts, "count": len(prompts)}
 
 

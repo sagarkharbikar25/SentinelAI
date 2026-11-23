@@ -349,11 +349,11 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      {/* Table Container (1px line border, 20px radius, shadow-card) */}
-      <div className="rounded-card bg-surface border border-line shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-well text-ink-3 border-b border-line uppercase text-[10px]">
+      {/* Table Container (1px line border, 20px radius, shadow-card, internal scroll) */}
+      <div className="rounded-card bg-surface border border-line shadow-card overflow-hidden flex flex-col">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)] min-h-[350px]">
+          <table className="w-full text-left text-xs font-mono relative">
+            <thead className="bg-well text-ink-3 border-b border-line uppercase text-[10px] sticky top-0 z-10 shadow-xs">
               <tr>
                 <th className="py-3 px-4 font-semibold">Time</th>
                 <th className="py-3 px-4 font-semibold">Agent</th>
